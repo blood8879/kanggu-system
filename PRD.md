@@ -67,14 +67,18 @@
 - 회사명: ㈜강구토건 (기본값, 수정 가능)
 - 대표자: 이진호 (기본값, 수정 가능)
 - 본사주소: 서울시 마포구 희우정로16, 8층 (기본값, 수정 가능)
-- 현장주소 (입력 필요)
-- 현장대리인 (입력 필요)
+- 현장주소 (선택, 미입력 시 빈 값으로 출력)
+- 현장대리인 (선택, 미입력 시 빈 값으로 출력)
 
-#### 근로자 정보 (사용자 입력)
-- 성명 (선택, 미입력 시 빈 값으로 출력)
-- 주민등록번호 (선택, 미입력 시 빈 값으로 출력)
-- 주소 (선택, 미입력 시 빈 값으로 출력)
-- 핸드폰번호 (선택, 미입력 시 빈 값으로 출력)
+#### 근로자 정보 (배열 입력)
+- **다중 근로자 입력 가능** (배열 구조)
+  - 한 명 입력: 파일 1개 생성 및 다운로드
+  - 여러 명 입력: 각 근로자별 파일 생성 및 다중 다운로드
+- 각 근로자별 정보 (모두 선택 항목)
+  - 성명 (선택, 미입력 시 빈 값으로 출력)
+  - 주민등록번호 (선택, 미입력 시 빈 값으로 출력)
+  - 주소 (선택, 미입력 시 빈 값으로 출력)
+  - 핸드폰번호 (선택, 미입력 시 빈 값으로 출력)
 
 #### 근로 조건 (사용자 입력/선택)
 - 근로장소 (선택, 미입력 시 빈 값으로 출력)
@@ -99,7 +103,11 @@
   - 종료일 자동 계산 (해당 월 말일)
 - FR2.2: 입력된 정보를 엑셀 템플릿의 지정된 셀에 자동 입력
 - FR2.3: 수식이 포함된 셀 자동 계산 (임금 관련 수식)
-- FR2.4: 브라우저에서 직접 엑셀 파일 생성 및 다운로드
+- FR2.4: 다중 근로자 처리
+  - 근로자 1명: 파일 1개 생성 및 단일 다운로드
+  - 근로자 여러 명: 각 근로자별 파일 생성
+  - 다중 파일 자동 다운로드 (순차 또는 ZIP 압축)
+- FR2.5: 브라우저에서 직접 엑셀 파일 생성 및 다운로드
 
 #### FR3: 사용자 인터페이스
 - FR3.1: 직관적인 입력 폼 제공
@@ -303,23 +311,27 @@ db.version(1).stores({
 ```typescript
 import ExcelJS from 'exceljs';
 
+interface Worker {
+  name?: string;
+  residentNumber?: string;
+  address?: string;
+  phone?: string;
+}
+
 interface ContractData {
   // 회사 정보
   companyName: string;
   representative: string;
   companyAddress: string;
-  siteAddress: string;
-  siteManager: string;
+  siteAddress?: string;
+  siteManager?: string;
 
-  // 근로자 정보
-  workerName: string;
-  residentNumber: string;
-  workerAddress: string;
-  phone: string;
+  // 근로자 정보 (배열)
+  workers: Worker[];
 
   // 계약 조건
-  workplace: string;
-  jobType: string;
+  workplace?: string;
+  jobType?: string;
   contractStartDate: Date;
   dailyWage: number;
 }
@@ -327,29 +339,51 @@ interface ContractData {
 class ExcelGeneratorService {
   /**
    * 브라우저에서 계약서 생성 및 다운로드
+   * 근로자가 1명이면 단일 파일, 여러 명이면 다중 파일 생성
    */
   async generateAndDownloadContract(contractData: ContractData): Promise<void> {
-    // 1. 템플릿 파일 로드 (public/templates/contact_form_after.xlsx)
-    const workbook = await this.loadTemplate();
+    if (contractData.workers.length === 1) {
+      // 단일 근로자: 파일 1개 생성 및 다운로드
+      await this.generateSingleContract(contractData, contractData.workers[0]);
+    } else {
+      // 다중 근로자: 각 근로자별 파일 생성 및 순차 다운로드
+      await this.generateMultipleContracts(contractData);
+    }
+  }
 
-    // 2. 계약 시작일에서 월 추출하여 해당 시트 선택
-    const month = contractData.contractStartDate.getMonth() + 1; // 0-based
+  /**
+   * 단일 근로자 계약서 생성
+   */
+  private async generateSingleContract(contractData: ContractData, worker: Worker): Promise<void> {
+    const workbook = await this.loadTemplate();
+    const month = contractData.contractStartDate.getMonth() + 1;
     const worksheet = workbook.getWorksheet(`8시간(8hx6)_${month}월`);
 
     if (!worksheet) {
       throw new Error(`${month}월 시트를 찾을 수 없습니다.`);
     }
 
-    // 3. 데이터 매핑 및 셀 입력
     this.fillCompanyInfo(worksheet, contractData);
-    this.fillWorkerInfo(worksheet, contractData);
+    this.fillWorkerInfo(worksheet, worker);
     this.fillContractInfo(worksheet, contractData);
 
-    // 4. 수식 재계산 (ExcelJS는 자동으로 재계산)
-
-    // 5. Blob으로 변환 및 다운로드
     const buffer = await workbook.xlsx.writeBuffer();
-    this.downloadFile(buffer, contractData);
+    this.downloadFile(buffer, worker, contractData.contractStartDate);
+  }
+
+  /**
+   * 다중 근로자 계약서 생성 및 순차 다운로드
+   */
+  private async generateMultipleContracts(contractData: ContractData): Promise<void> {
+    for (let i = 0; i < contractData.workers.length; i++) {
+      const worker = contractData.workers[i];
+      await this.generateSingleContract(contractData, worker);
+
+      // 브라우저 다운로드 간격 (500ms delay)
+      if (i < contractData.workers.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+    }
   }
 
   /**
@@ -371,26 +405,26 @@ class ExcelGeneratorService {
   private fillCompanyInfo(worksheet: ExcelJS.Worksheet, data: ContractData) {
     worksheet.getCell('A4').value = `${data.companyName} 대표 ${data.representative}`;
     worksheet.getCell('C50').value = data.companyAddress; // 본사주소
-    worksheet.getCell('C51').value = data.siteAddress; // 현장주소
-    worksheet.getCell('C52').value = data.siteManager; // 현장대리인
+    worksheet.getCell('C51').value = data.siteAddress || ''; // 현장주소 (선택)
+    worksheet.getCell('C52').value = data.siteManager || ''; // 현장대리인 (선택)
   }
 
   /**
    * 근로자 정보 입력
    */
-  private fillWorkerInfo(worksheet: ExcelJS.Worksheet, data: ContractData) {
-    worksheet.getCell('G48').value = data.workerName; // 성명
-    worksheet.getCell('G50').value = data.residentNumber; // 주민등록번호
-    worksheet.getCell('G49').value = data.workerAddress; // 주소
-    worksheet.getCell('G51').value = data.phone; // 핸드폰번호
+  private fillWorkerInfo(worksheet: ExcelJS.Worksheet, worker: Worker) {
+    worksheet.getCell('G48').value = worker.name || ''; // 성명 (선택)
+    worksheet.getCell('G50').value = worker.residentNumber || ''; // 주민등록번호 (선택)
+    worksheet.getCell('G49').value = worker.address || ''; // 주소 (선택)
+    worksheet.getCell('G51').value = worker.phone || ''; // 핸드폰번호 (선택)
   }
 
   /**
    * 계약 조건 입력
    */
   private fillContractInfo(worksheet: ExcelJS.Worksheet, data: ContractData) {
-    worksheet.getCell('B6').value = data.workplace; // 근로장소
-    worksheet.getCell('H6').value = data.jobType; // 직종
+    worksheet.getCell('B6').value = data.workplace || ''; // 근로장소 (선택)
+    worksheet.getCell('H6').value = data.jobType || ''; // 직종 (선택)
     worksheet.getCell('G18').value = data.dailyWage; // 일당
 
     // 계약 시작일 및 종료일 설정
@@ -406,7 +440,7 @@ class ExcelGeneratorService {
   /**
    * 파일 다운로드
    */
-  private downloadFile(buffer: ArrayBuffer, data: ContractData) {
+  private downloadFile(buffer: ArrayBuffer, worker: Worker, contractStartDate: Date) {
     const blob = new Blob([buffer], {
       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     });
@@ -414,7 +448,8 @@ class ExcelGeneratorService {
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `근로계약서_${data.workerName}_${data.contractStartDate.getFullYear()}년${data.contractStartDate.getMonth() + 1}월.xlsx`;
+    const workerName = worker.name || '근로자';
+    link.download = `근로계약서_${workerName}_${contractStartDate.getFullYear()}년${contractStartDate.getMonth() + 1}월.xlsx`;
     link.click();
 
     window.URL.revokeObjectURL(url);
