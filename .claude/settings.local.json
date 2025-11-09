@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(brew install:*)",
+      "Bash(pipx ensurepath:*)",
+      "Bash(pipx install:*)",
+      "Bash(source ~/.zshrc)",
+      "Bash(superclaude --version)",
+      "WebFetch(domain:github.com)",
+      "Bash(superclaude install)",
+      "Bash(SuperClaude install)",
+      "Bash(~/.local/bin/SuperClaude:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
