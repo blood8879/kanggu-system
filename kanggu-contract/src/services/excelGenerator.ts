@@ -1,6 +1,5 @@
 import ExcelJS from 'exceljs';
-import type { ContractFormData } from '../types/contract';
-import type { Worker } from './db';
+import type { ContractFormData, Worker } from '../types/contract';
 import { EXCEL_CELL_MAPPING, MONTH_SHEET_NAMES } from '../constants/excelMapping';
 
 export class ExcelGeneratorService {
@@ -122,7 +121,7 @@ export class ExcelGeneratorService {
             bold: true,
             underline: true,
             size: 10,
-            color: { indexed: 62 }, // 파란색
+            color: { theme: 1 } as Partial<ExcelJS.Color>, // 파란색
             name: '굴림',
             family: 3,
             charset: 129

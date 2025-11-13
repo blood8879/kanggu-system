@@ -27,7 +27,7 @@ const contractSchema = z.object({
   ).min(1, '최소 1명의 근로자가 필요합니다'),
   workplace: z.string().optional(),
   jobType: z.string().optional(),
-  contractStartDate: z.date().optional(),
+  contractStartDate: z.date(),
   contractEndDate: z.date().optional(),
   dailyWage: z.number().min(0, '일당은 0 이상이어야 합니다'),
 });
