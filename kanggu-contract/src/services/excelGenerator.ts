@@ -64,11 +64,29 @@ export class ExcelGeneratorService {
   ): void {
     const { workerInfo } = EXCEL_CELL_MAPPING;
 
-    // 근로자 정보 입력 (G열에만 입력하면 됨)
-    worksheet.getCell(workerInfo.name).value = worker.name || '';
-    worksheet.getCell(workerInfo.residentNumber).value = worker.residentNumber || '';
-    worksheet.getCell(workerInfo.address).value = worker.address || '';
-    worksheet.getCell(workerInfo.phone).value = worker.phone || '';
+    // 근로자 정보 입력 (G열에만 입력하면 됨) - 검정색으로 설정
+    this.setCellWithBlackText(worksheet, workerInfo.name, worker.name || '');
+    this.setCellWithBlackText(worksheet, workerInfo.residentNumber, worker.residentNumber || '');
+    this.setCellWithBlackText(worksheet, workerInfo.address, worker.address || '');
+    this.setCellWithBlackText(worksheet, workerInfo.phone, worker.phone || '');
+  }
+
+  /**
+   * 셀에 검정색 텍스트로 값 설정
+   */
+  private setCellWithBlackText(
+    worksheet: ExcelJS.Worksheet,
+    cellAddress: string,
+    value: string
+  ): void {
+    const cell = worksheet.getCell(cellAddress);
+    cell.value = value;
+
+    // 폰트 색상을 검정색으로 명시적으로 설정
+    cell.font = {
+      ...cell.font,
+      color: { argb: 'FF000000' } // 검정색
+    };
   }
 
   /**
@@ -157,6 +175,9 @@ export class ExcelGeneratorService {
     this.fillWorkerInfo(worksheet, worker);
     this.fillContractInfo(worksheet, data);
 
+    // 인쇄 영역을 51번 행까지 설정
+    this.setPrintArea(worksheet);
+
     // 계약 월 시트만 남기고 나머지 시트는 완전히 삭제
     const targetSheetName = worksheet.name;
 
@@ -174,6 +195,14 @@ export class ExcelGeneratorService {
     });
 
     return await workbook.xlsx.writeBuffer();
+  }
+
+  /**
+   * 인쇄 영역을 51번 행까지 설정
+   */
+  private setPrintArea(worksheet: ExcelJS.Worksheet): void {
+    // 인쇄 영역을 A1:H51로 설정 (51번 행까지 포함)
+    worksheet.pageSetup.printArea = 'A1:H51';
   }
 
   /**
