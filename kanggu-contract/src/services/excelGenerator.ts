@@ -157,24 +157,24 @@ export class ExcelGeneratorService {
     this.fillWorkerInfo(worksheet, worker);
     this.fillContractInfo(worksheet, data);
 
-    // 계약 월 시트를 첫 번째 위치로 이동하고 나머지는 숨김 처리
+    // 계약 월 시트만 표시하고 나머지는 숨김 처리 후, 계약 월 시트를 첫 번째로 이동
     const targetSheetName = worksheet.name;
-    const currentSheetIndex = workbook.worksheets.findIndex(s => s.name === targetSheetName);
 
-    if (currentSheetIndex > 0) {
-      // 계약 월 시트를 첫 번째 위치로 이동
-      const [targetSheet] = workbook.worksheets.splice(currentSheetIndex, 1);
-      workbook.worksheets.unshift(targetSheet);
-    }
-
-    // 첫 번째 시트(계약 월)만 표시하고 나머지는 숨김
-    workbook.worksheets.forEach((sheet, index) => {
-      if (index === 0) {
+    // 1단계: 모든 시트의 상태 설정
+    workbook.worksheets.forEach((sheet) => {
+      if (sheet.name === targetSheetName) {
         sheet.state = 'visible';
       } else {
         sheet.state = 'hidden';
       }
     });
+
+    // 2단계: 계약 월 시트를 첫 번째 위치로 이동
+    const currentSheetIndex = workbook.worksheets.findIndex(s => s.name === targetSheetName);
+    if (currentSheetIndex > 0) {
+      const [targetSheet] = workbook.worksheets.splice(currentSheetIndex, 1);
+      workbook.worksheets.unshift(targetSheet);
+    }
 
     return await workbook.xlsx.writeBuffer();
   }
