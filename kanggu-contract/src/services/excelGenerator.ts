@@ -159,14 +159,26 @@ export class ExcelGeneratorService {
 
     // 계약 시작 월에 해당하는 시트만 표시하고 나머지는 숨김 처리
     const targetSheetName = worksheet.name; // 현재 작업중인 시트의 이름
+
+    console.log(`[DEBUG] 계약 월: ${month}월`);
+    console.log(`[DEBUG] 대상 시트 이름: ${targetSheetName}`);
+
     workbook.worksheets.forEach((sheet) => {
-      if (sheet.name === targetSheetName) {
+      const isTarget = sheet.name === targetSheetName;
+      console.log(`[DEBUG] 시트 "${sheet.name}": ${isTarget ? 'visible' : 'hidden'} 설정`);
+
+      if (isTarget) {
         // 계약 월의 시트만 표시
         sheet.state = 'visible';
       } else {
         // 나머지 월의 시트는 숨김
         sheet.state = 'hidden';
       }
+    });
+
+    console.log('[DEBUG] 최종 시트 상태:');
+    workbook.worksheets.forEach((sheet) => {
+      console.log(`  - ${sheet.name}: ${sheet.state}`);
     });
 
     return await workbook.xlsx.writeBuffer();
