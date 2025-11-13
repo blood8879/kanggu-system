@@ -158,8 +158,9 @@ export class ExcelGeneratorService {
     this.fillContractInfo(worksheet, data);
 
     // 계약 시작 월에 해당하는 시트만 표시하고 나머지는 숨김 처리
-    workbook.worksheets.forEach((sheet, index) => {
-      if (index === month - 1) {
+    const targetSheetName = worksheet.name; // 현재 작업중인 시트의 이름
+    workbook.worksheets.forEach((sheet) => {
+      if (sheet.name === targetSheetName) {
         // 계약 월의 시트만 표시
         sheet.state = 'visible';
       } else {
