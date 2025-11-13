@@ -157,28 +157,23 @@ export class ExcelGeneratorService {
     this.fillWorkerInfo(worksheet, worker);
     this.fillContractInfo(worksheet, data);
 
-    // 계약 시작 월에 해당하는 시트만 표시하고 나머지는 숨김 처리
-    const targetSheetName = worksheet.name; // 현재 작업중인 시트의 이름
+    // 계약 월 시트를 첫 번째 위치로 이동하고 나머지는 숨김 처리
+    const targetSheetName = worksheet.name;
+    const currentSheetIndex = workbook.worksheets.findIndex(s => s.name === targetSheetName);
 
-    console.log(`[DEBUG] 계약 월: ${month}월`);
-    console.log(`[DEBUG] 대상 시트 이름: ${targetSheetName}`);
+    if (currentSheetIndex > 0) {
+      // 계약 월 시트를 첫 번째 위치로 이동
+      const [targetSheet] = workbook.worksheets.splice(currentSheetIndex, 1);
+      workbook.worksheets.unshift(targetSheet);
+    }
 
-    workbook.worksheets.forEach((sheet) => {
-      const isTarget = sheet.name === targetSheetName;
-      console.log(`[DEBUG] 시트 "${sheet.name}": ${isTarget ? 'visible' : 'hidden'} 설정`);
-
-      if (isTarget) {
-        // 계약 월의 시트만 표시
+    // 첫 번째 시트(계약 월)만 표시하고 나머지는 숨김
+    workbook.worksheets.forEach((sheet, index) => {
+      if (index === 0) {
         sheet.state = 'visible';
       } else {
-        // 나머지 월의 시트는 숨김
         sheet.state = 'hidden';
       }
-    });
-
-    console.log('[DEBUG] 최종 시트 상태:');
-    workbook.worksheets.forEach((sheet) => {
-      console.log(`  - ${sheet.name}: ${sheet.state}`);
     });
 
     return await workbook.xlsx.writeBuffer();
