@@ -157,24 +157,21 @@ export class ExcelGeneratorService {
     this.fillWorkerInfo(worksheet, worker);
     this.fillContractInfo(worksheet, data);
 
-    // 계약 월 시트만 표시하고 나머지는 숨김 처리 후, 계약 월 시트를 첫 번째로 이동
+    // 계약 월 시트만 남기고 나머지 시트는 완전히 삭제
     const targetSheetName = worksheet.name;
 
-    // 1단계: 모든 시트의 상태 설정
+    // 삭제할 시트 목록 수집 (역순으로 삭제하기 위해)
+    const sheetsToRemove: string[] = [];
     workbook.worksheets.forEach((sheet) => {
-      if (sheet.name === targetSheetName) {
-        sheet.state = 'visible';
-      } else {
-        sheet.state = 'hidden';
+      if (sheet.name !== targetSheetName) {
+        sheetsToRemove.push(sheet.name);
       }
     });
 
-    // 2단계: 계약 월 시트를 첫 번째 위치로 이동
-    const currentSheetIndex = workbook.worksheets.findIndex(s => s.name === targetSheetName);
-    if (currentSheetIndex > 0) {
-      const [targetSheet] = workbook.worksheets.splice(currentSheetIndex, 1);
-      workbook.worksheets.unshift(targetSheet);
-    }
+    // 시트 삭제
+    sheetsToRemove.forEach((sheetName) => {
+      workbook.removeWorksheet(sheetName);
+    });
 
     return await workbook.xlsx.writeBuffer();
   }
