@@ -198,11 +198,11 @@ export class ExcelGeneratorService {
   }
 
   /**
-   * 인쇄 영역을 51번 행까지 설정
+   * 인쇄 영역을 J열, 51번 행까지 설정
    */
   private setPrintArea(worksheet: ExcelJS.Worksheet): void {
-    // 인쇄 영역을 A1:H51로 설정 (51번 행까지 포함)
-    worksheet.pageSetup.printArea = 'A1:H51';
+    // 인쇄 영역을 A1:J51로 설정 (J열, 51번 행까지 포함)
+    worksheet.pageSetup.printArea = 'A1:J51';
   }
 
   /**
