@@ -65,7 +65,7 @@ export class ExcelGeneratorService {
     const { workerInfo } = EXCEL_CELL_MAPPING;
 
     // 근로자 정보 입력 (G열에만 입력하면 됨) - 검정색으로 설정
-    this.setCellWithBlackText(worksheet, workerInfo.name, worker.name || '');
+    this.setCellWithBlackText(worksheet, workerInfo.name, worker.name ? `${worker.name} (서명)` : '');
     this.setCellWithBlackText(worksheet, workerInfo.residentNumber, worker.residentNumber || '');
     this.setCellWithBlackText(worksheet, workerInfo.address, worker.address || '');
     this.setCellWithBlackText(worksheet, workerInfo.phone, worker.phone || '');
