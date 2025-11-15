@@ -26,7 +26,8 @@ const contractSchema = z.object({
       jobType: z.string().optional(),
       contractStartDate: z.date().optional(),
       contractEndDate: z.date().optional(),
-      dailyWage: z.number().min(0, '일당은 0 이상이어야 합니다').optional(),
+      // NaN을 허용하도록 수정
+      dailyWage: z.number().min(0, '일당은 0 이상이어야 합니다').optional().or(z.nan().transform(() => undefined)),
     })
   ).min(1, '최소 1명의 근로자가 필요합니다'),
 });
@@ -97,7 +98,21 @@ export const CreateContractPage: React.FC = () => {
   const onError = (errors: any) => {
     console.error('=== 폼 제출 실패 (유효성 검증 에러) ===');
     console.error('에러 목록:', errors);
-    alert('폼에 오류가 있습니다. 필수 항목을 확인해주세요.');
+
+    // workers 에러 상세 출력
+    if (errors.workers) {
+      console.error('Workers 에러 상세:');
+      errors.workers.forEach((workerError: any, index: number) => {
+        if (workerError) {
+          console.error(`근로자 ${index + 1}:`, workerError);
+          Object.keys(workerError).forEach(key => {
+            console.error(`  - ${key}:`, workerError[key]?.message || workerError[key]);
+          });
+        }
+      });
+    }
+
+    alert('폼에 오류가 있습니다. 필수 항목을 확인해주세요.\n콘솔을 확인하세요.');
   };
 
   return (
@@ -118,8 +133,25 @@ export const CreateContractPage: React.FC = () => {
           {Object.keys(formErrors).length > 0 && (
             <Card className="bg-red-50 border-red-200">
               <h3 className="text-red-700 font-bold mb-2">유효성 검증 에러:</h3>
-              <div className="text-xs text-red-600">
-                {Object.entries(formErrors).map(([key, error]) => (
+              <div className="text-xs text-red-600 space-y-2">
+                {formErrors.workers && Array.isArray(formErrors.workers) && (
+                  <div>
+                    <strong>근로자 에러:</strong>
+                    {formErrors.workers.map((workerError: any, index: number) => (
+                      workerError && (
+                        <div key={index} className="ml-4 mt-1">
+                          <strong>근로자 {index + 1}:</strong>
+                          {Object.entries(workerError).map(([field, err]: [string, any]) => (
+                            <div key={field} className="ml-4">
+                              • {field}: {err?.message || String(err)}
+                            </div>
+                          ))}
+                        </div>
+                      )
+                    ))}
+                  </div>
+                )}
+                {Object.entries(formErrors).filter(([key]) => key !== 'workers').map(([key, error]) => (
                   <div key={key}>
                     <strong>{key}:</strong> {error?.message || '알 수 없는 에러'}
                   </div>
