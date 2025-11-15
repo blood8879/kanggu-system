@@ -595,11 +595,26 @@ export class ExcelGeneratorService {
   }
 
   /**
-   * 인쇄 영역을 J열, 51번 행까지 설정
+   * 인쇄 영역을 J열, 51번 행까지 설정 및 한 페이지 맞춤
    */
   private setPrintArea(worksheet: ExcelJS.Worksheet): void {
     // 인쇄 영역을 A1:J51로 설정 (J열, 51번 행까지 포함)
     worksheet.pageSetup.printArea = 'A1:J51';
+
+    // 한 페이지에 맞춤
+    worksheet.pageSetup.fitToPage = true;
+    worksheet.pageSetup.fitToWidth = 1;
+    worksheet.pageSetup.fitToHeight = 0; // 0 = 높이 제한 없음 (자동)
+
+    // 여백 설정 (인치)
+    worksheet.pageSetup.margins = {
+      left: 0.25,
+      right: 0.25,
+      top: 0.25,
+      bottom: 0.25,
+      header: 0.3,
+      footer: 0.3
+    };
   }
 
   /**
