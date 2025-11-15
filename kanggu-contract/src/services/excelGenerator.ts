@@ -94,8 +94,8 @@ export class ExcelGeneratorService {
       // B19: "동의자" 뒤 빈칸을 근로자명으로 교체
       this.fillWorkerNameInCell(worksheet, workerInfo.signatureB19, worker.name);
 
-      // B21: "동의자" 뒤 빈칸을 근로자명으로 교체 (첫 번째만)
-      this.fillWorkerNameInCell(worksheet, workerInfo.signatureB21, worker.name, 'first');
+      // B21: "동의자" 뒤 빈칸을 근로자명으로 교체 (마지막만)
+      this.fillWorkerNameInCell(worksheet, workerInfo.signatureB21, worker.name, 'last');
 
       // B25: "동의자 성명 :" 뒤 빈칸을 근로자명으로 교체 (마지막만)
       this.fillWorkerNameInCell(worksheet, workerInfo.signatureB25, worker.name, 'last');
