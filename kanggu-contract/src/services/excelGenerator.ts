@@ -83,6 +83,28 @@ export class ExcelGeneratorService {
           }
         ]
       };
+
+      // 추가 서명 필드들에 근로자명 입력
+      // E4: 동의자 (인)
+      this.setCellWithBlackText(worksheet, workerInfo.signatureE4, `${worker.name}                          (인)`);
+
+      // B19: 동의자 (인)
+      this.setCellWithBlackText(worksheet, workerInfo.signatureB19, `${worker.name}                          (인)`);
+
+      // B21: 개인정보제공 동의자 성명 : (인)
+      this.setCellWithBlackText(worksheet, workerInfo.signatureB21, `개인정보제공 동의자 성명 : ${worker.name}                          (인)`);
+
+      // B25: 동의자 성명 : (인)
+      this.setCellWithBlackText(worksheet, workerInfo.signatureB25, `동의자 성명 : ${worker.name}                          (인)`);
+
+      // B36: ____(인)
+      this.setCellWithBlackText(worksheet, workerInfo.signatureB36, `${worker.name}                          (인)`);
+
+      // B44: 동의자
+      this.setCellWithBlackText(worksheet, workerInfo.signatureB44, `${worker.name}                          (인)`);
+
+      // B45: 동의자
+      this.setCellWithBlackText(worksheet, workerInfo.signatureB45, `${worker.name}                          (인)`);
     }
 
     this.setCellWithBlackText(worksheet, workerInfo.residentNumber, worker.residentNumber || '');

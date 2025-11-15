@@ -10,6 +10,14 @@ export const EXCEL_CELL_MAPPING = {
     residentNumber: 'G50',           // 주민등록번호 ✅ 확인됨
     address: 'G49',                  // 주소 ✅ 확인됨
     phone: 'G51',                    // 핸드폰번호 ✅ 확인됨
+    // 동의자 서명 필드들
+    signatureE4: 'E4',               // 동의자 (인)
+    signatureB19: 'B19',             // 동의자 (인)
+    signatureB21: 'B21',             // 개인정보제공 동의자 성명 : (인)
+    signatureB25: 'B25',             // 동의자 성명 : (인)
+    signatureB36: 'B36',             // ____(인)
+    signatureB44: 'B44',             // 동의자
+    signatureB45: 'B45',             // 동의자
   },
   contractInfo: {
     workplace: 'B6',                 // 근로장소
