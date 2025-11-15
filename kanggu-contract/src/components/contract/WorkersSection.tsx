@@ -21,7 +21,12 @@ export const WorkersSection = () => {
       if (worker.contractStartDate) {
         const startDate = new Date(worker.contractStartDate);
         const endDate = endOfMonth(startDate);
-        setValue(`workers.${index}.contractEndDate`, endDate);
+
+        // 현재 설정된 종료일과 비교하여 다를 때만 업데이트 (무한 루프 방지)
+        const currentEndDate = worker.contractEndDate ? new Date(worker.contractEndDate) : null;
+        if (!currentEndDate || currentEndDate.getTime() !== endDate.getTime()) {
+          setValue(`workers.${index}.contractEndDate`, endDate, { shouldValidate: false });
+        }
       }
     });
   }, [watchedWorkers, setValue]);
