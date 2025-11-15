@@ -47,6 +47,16 @@ export const CreateContractPage: React.FC = () => {
     },
   });
 
+  // 폼 에러 감시 및 출력
+  const formErrors = methods.formState.errors;
+
+  React.useEffect(() => {
+    if (Object.keys(formErrors).length > 0) {
+      console.error('=== 폼 유효성 검증 에러 ===');
+      console.error(formErrors);
+    }
+  }, [formErrors]);
+
   const onSubmit = async (data: ContractFormValues) => {
     console.log('=== 계약서 생성 시작 ===');
     console.log('폼 데이터:', data);
@@ -83,6 +93,13 @@ export const CreateContractPage: React.FC = () => {
     }
   };
 
+  // 버튼 클릭 핸들러 (디버깅용)
+  const handleButtonClick = () => {
+    console.log('=== 계약서 생성 버튼 클릭됨 ===');
+    console.log('현재 폼 상태:', methods.getValues());
+    console.log('폼 에러:', methods.formState.errors);
+  };
+
   return (
     <div className="max-w-4xl mx-auto">
       <h1 className="text-2xl sm:text-3xl font-bold mb-6">계약서 생성</h1>
@@ -97,6 +114,16 @@ export const CreateContractPage: React.FC = () => {
             <WorkersSection />
           </Card>
 
+          {/* 폼 에러 표시 (디버깅용) */}
+          {Object.keys(formErrors).length > 0 && (
+            <Card className="bg-red-50 border-red-200">
+              <h3 className="text-red-700 font-bold mb-2">유효성 검증 에러:</h3>
+              <pre className="text-xs text-red-600 overflow-auto">
+                {JSON.stringify(formErrors, null, 2)}
+              </pre>
+            </Card>
+          )}
+
           <div className="flex justify-end gap-3">
             <Button
               type="button"
@@ -106,7 +133,11 @@ export const CreateContractPage: React.FC = () => {
             >
               초기화
             </Button>
-            <Button type="submit" disabled={isGenerating}>
+            <Button
+              type="submit"
+              disabled={isGenerating}
+              onClick={handleButtonClick}
+            >
               {isGenerating ? '생성 중...' : '계약서 생성'}
             </Button>
           </div>
