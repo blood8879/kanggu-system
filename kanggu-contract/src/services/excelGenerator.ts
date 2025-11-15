@@ -84,32 +84,78 @@ export class ExcelGeneratorService {
         ]
       };
 
-      // 추가 서명 필드들에 근로자명 입력
-      // E4: 동의자 (인)
-      this.setCellWithBlackText(worksheet, workerInfo.signatureE4, `${worker.name}                          (인)`);
+      // 추가 서명 필드들에 근로자명 입력 (원본 내용의 빈칸만 교체)
+      // E4: 단순히 이름만
+      this.fillWorkerNameInCell(worksheet, workerInfo.signatureE4, worker.name);
 
-      // B19: 동의자 (인)
-      this.setCellWithBlackText(worksheet, workerInfo.signatureB19, `${worker.name}                          (인)`);
+      // B19: "동의자" 뒤 빈칸을 근로자명으로 교체
+      this.fillWorkerNameInCell(worksheet, workerInfo.signatureB19, worker.name);
 
-      // B21: 개인정보제공 동의자 성명 : (인)
-      this.setCellWithBlackText(worksheet, workerInfo.signatureB21, `개인정보제공 동의자 성명 : ${worker.name}                          (인)`);
+      // B21: "동의자" 뒤 빈칸을 근로자명으로 교체
+      this.fillWorkerNameInCell(worksheet, workerInfo.signatureB21, worker.name);
 
-      // B25: 동의자 성명 : (인)
-      this.setCellWithBlackText(worksheet, workerInfo.signatureB25, `동의자 성명 : ${worker.name}                          (인)`);
+      // B25: "동의자 성명 :" 뒤 빈칸을 근로자명으로 교체
+      this.fillWorkerNameInCell(worksheet, workerInfo.signatureB25, worker.name);
 
-      // B36: ____(인)
-      this.setCellWithBlackText(worksheet, workerInfo.signatureB36, `${worker.name}                          (인)`);
+      // B36: 두 군데 - "개인정보제공 동의자 성명 :", "동의자 성명 :" 뒤 빈칸을 근로자명으로 교체
+      this.fillWorkerNameInCell(worksheet, workerInfo.signatureB36, worker.name);
 
-      // B44: 동의자
-      this.setCellWithBlackText(worksheet, workerInfo.signatureB44, `${worker.name}                          (인)`);
+      // B44: "동의자 성명 :" 뒤 빈칸을 근로자명으로 교체
+      this.fillWorkerNameInCell(worksheet, workerInfo.signatureB44, worker.name);
 
-      // B45: 동의자
-      this.setCellWithBlackText(worksheet, workerInfo.signatureB45, `${worker.name}                          (인)`);
+      // B45: 마지막 빈칸을 근로자명으로 교체
+      this.fillWorkerNameInCell(worksheet, workerInfo.signatureB45, worker.name);
     }
 
     this.setCellWithBlackText(worksheet, workerInfo.residentNumber, worker.residentNumber || '');
     this.setCellWithBlackText(worksheet, workerInfo.address, worker.address || '');
     this.setCellWithBlackText(worksheet, workerInfo.phone, worker.phone || '');
+  }
+
+  /**
+   * 셀의 원본 내용에서 빈칸 부분만 근로자명으로 교체
+   */
+  private fillWorkerNameInCell(
+    worksheet: ExcelJS.Worksheet,
+    cellAddress: string,
+    workerName: string
+  ): void {
+    const cell = worksheet.getCell(cellAddress);
+    const originalValue = cell.value;
+
+    if (typeof originalValue === 'string') {
+      // 일반 텍스트: 연속된 긴 공백(15자 이상)을 근로자명으로 교체
+      // 근로자명 앞뒤로 적당한 공백을 유지하여 가독성 확보
+      const newValue = originalValue.replace(/\s{15,}/g, `            ${workerName}            `);
+      cell.value = newValue;
+
+      // 폰트 색상을 검정색으로 설정
+      cell.font = {
+        ...cell.font,
+        color: { argb: 'FF000000' }
+      };
+    } else if (originalValue && typeof originalValue === 'object' && 'richText' in originalValue) {
+      // richText 형식인 경우: 각 텍스트 조각에서 빈칸 교체
+      const richTextValue = originalValue as { richText: ExcelJS.RichText[] };
+      const newRichText = richTextValue.richText.map(part => {
+        if (part.text && part.text.match(/\s{15,}/)) {
+          return {
+            ...part,
+            text: part.text.replace(/\s{15,}/g, `            ${workerName}            `)
+          };
+        }
+        return part;
+      });
+
+      cell.value = { richText: newRichText };
+    } else {
+      // 원본 값이 없거나 다른 타입인 경우: 그냥 근로자명만 입력
+      cell.value = workerName;
+      cell.font = {
+        ...cell.font,
+        color: { argb: 'FF000000' }
+      };
+    }
   }
 
   /**
