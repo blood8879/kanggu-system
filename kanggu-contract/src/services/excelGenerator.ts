@@ -100,8 +100,8 @@ export class ExcelGeneratorService {
       // B25: "동의자 성명 :" 뒤 빈칸을 근로자명으로 교체 (마지막만)
       this.fillWorkerNameInCell(worksheet, workerInfo.signatureB25, worker.name, 'last');
 
-      // B36: "동의자 성명 :" 뒤 빈칸을 근로자명으로 교체 (마지막만)
-      this.fillWorkerNameInCell(worksheet, workerInfo.signatureB36, worker.name, 'last');
+      // B36: "성명 :" 패턴 뒤의 모든 빈칸을 근로자명으로 교체 (특수 케이스)
+      this.fillWorkerNameInCell(worksheet, workerInfo.signatureB36, worker.name, 'name-fields');
 
       // B44: "동의자 성명 :" 뒤 빈칸을 근로자명으로 교체
       this.fillWorkerNameInCell(worksheet, workerInfo.signatureB44, worker.name);
@@ -118,13 +118,13 @@ export class ExcelGeneratorService {
   /**
    * 셀의 원본 내용에서 빈칸 부분만 근로자명으로 교체
    * 근로자명은 #002060 색상, 나머지 원본 텍스트는 원래 색상 유지
-   * @param mode - 'all': 모든 빈칸 교체 (기본값), 'first': 첫 번째 빈칸만 교체, 'last': 마지막 빈칸만 교체
+   * @param mode - 'all': 모든 빈칸 교체 (기본값), 'first': 첫 번째 빈칸만 교체, 'last': 마지막 빈칸만 교체, 'name-fields': "성명 :" 뒤의 모든 빈칸 교체
    */
   private fillWorkerNameInCell(
     worksheet: ExcelJS.Worksheet,
     cellAddress: string,
     workerName: string,
-    mode: 'all' | 'first' | 'last' = 'all'
+    mode: 'all' | 'first' | 'last' | 'name-fields' = 'all'
   ): void {
     const cell = worksheet.getCell(cellAddress);
     const originalValue = cell.value;
@@ -137,7 +137,44 @@ export class ExcelGeneratorService {
       // 15자 이상 연속된 공백을 기준으로 텍스트를 나눔
       const regex = /\s{15,}/g;
 
-      if (mode === 'last') {
+      if (mode === 'name-fields') {
+        // 'name-fields' 모드: "성명 :" 패턴 뒤의 모든 긴 공백을 교체
+        const nameFieldRegex = /(성명\s*:\s*)(\s{15,})/g;
+        let lastIndex = 0;
+        let match;
+
+        while ((match = nameFieldRegex.exec(originalValue)) !== null) {
+          // "성명 :" 이전 텍스트 (원본 색상)
+          if (match.index > lastIndex) {
+            parts.push({
+              font: originalFont,
+              text: originalValue.substring(lastIndex, match.index)
+            });
+          }
+
+          // "성명 :" 부분 (원본 색상)
+          parts.push({
+            font: originalFont,
+            text: match[1]
+          });
+
+          // 근로자명 (#002060)
+          parts.push({
+            font: { ...originalFont, color: { argb: 'FF002060' } },
+            text: `            ${workerName}            `
+          });
+
+          lastIndex = nameFieldRegex.lastIndex;
+        }
+
+        // 마지막 남은 텍스트 (원본 색상)
+        if (lastIndex < originalValue.length) {
+          parts.push({
+            font: originalFont,
+            text: originalValue.substring(lastIndex)
+          });
+        }
+      } else if (mode === 'last') {
         // 'last' 모드: 마지막 긴 공백만 교체
         const matches = Array.from(originalValue.matchAll(/\s{15,}/g));
         if (matches.length > 0) {
@@ -213,7 +250,56 @@ export class ExcelGeneratorService {
       // richText 형식인 경우: 빈칸 부분을 찾아서 근로자명으로 교체
       const richTextValue = originalValue as { richText: ExcelJS.RichText[] };
 
-      if (mode === 'last') {
+      if (mode === 'name-fields') {
+        // 'name-fields' 모드: "성명 :" 패턴 뒤의 모든 긴 공백을 교체
+        const newRichText: ExcelJS.RichText[] = [];
+        const nameFieldRegex = /(성명\s*:\s*)(\s{15,})/g;
+
+        for (const part of richTextValue.richText) {
+          if (part.text && part.text.match(/성명\s*:\s*\s{15,}/)) {
+            // 이 part에 "성명 :" 패턴이 있으면 분리해서 처리
+            let lastIndex = 0;
+            let match;
+
+            while ((match = nameFieldRegex.exec(part.text)) !== null) {
+              // "성명 :" 이전 텍스트 (원본 스타일)
+              if (match.index > lastIndex) {
+                newRichText.push({
+                  ...part,
+                  text: part.text.substring(lastIndex, match.index)
+                });
+              }
+
+              // "성명 :" 부분 (원본 스타일)
+              newRichText.push({
+                ...part,
+                text: match[1]
+              });
+
+              // 근로자명 (#002060)
+              newRichText.push({
+                font: { ...part.font, color: { argb: 'FF002060' } },
+                text: `            ${workerName}            `
+              });
+
+              lastIndex = nameFieldRegex.lastIndex;
+            }
+
+            // 마지막 남은 텍스트 (원본 스타일)
+            if (lastIndex < part.text.length) {
+              newRichText.push({
+                ...part,
+                text: part.text.substring(lastIndex)
+              });
+            }
+          } else {
+            // "성명 :" 패턴이 없으면 그대로 유지
+            newRichText.push(part);
+          }
+        }
+
+        cell.value = { richText: newRichText };
+      } else if (mode === 'last') {
         // 'last' 모드: 마지막 긴 공백만 교체
         // 먼저 모든 공백 위치를 찾음
         const allMatches: Array<{ partIndex: number; matchIndex: number; matchLength: number; match: RegExpMatchArray }> = [];
