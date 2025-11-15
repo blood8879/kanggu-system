@@ -24,8 +24,8 @@ const contractSchema = z.object({
       // 각 근로자별 계약 조건
       workplace: z.string().optional(),
       jobType: z.string().optional(),
-      contractStartDate: z.date().optional(),
-      contractEndDate: z.date().optional(),
+      contractStartDate: z.date().nullable().optional(),
+      contractEndDate: z.date().nullable().optional(),
       // NaN을 허용하도록 수정
       dailyWage: z.number().min(0, '일당은 0 이상이어야 합니다').optional().or(z.nan().transform(() => undefined)),
     })

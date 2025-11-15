@@ -6,8 +6,8 @@ export interface Worker {
   // 각 근로자별 계약 조건
   workplace?: string;
   jobType?: string;
-  contractStartDate?: Date;
-  contractEndDate?: Date;
+  contractStartDate?: Date | null;
+  contractEndDate?: Date | null;
   dailyWage?: number;
 }
 

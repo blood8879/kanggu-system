@@ -562,7 +562,7 @@ export class ExcelGeneratorService {
     const workbook = await this.loadTemplate();
 
     // 근로자의 계약 시작일을 사용하여 월 결정 (없으면 현재 월 사용)
-    const contractDate = worker.contractStartDate
+    const contractDate = worker.contractStartDate && worker.contractStartDate !== null
       ? new Date(worker.contractStartDate)
       : new Date();
     const month = contractDate.getMonth() + 1;
@@ -623,7 +623,9 @@ export class ExcelGeneratorService {
    */
   private generateFileName(worker: Worker): string {
     const workerName = worker.name || '근로자';
-    const date = worker.contractStartDate ? new Date(worker.contractStartDate) : new Date();
+    const date = worker.contractStartDate && worker.contractStartDate !== null
+      ? new Date(worker.contractStartDate)
+      : new Date();
     const year = date.getFullYear();
     const month = date.getMonth() + 1;
     return `근로계약서_${workerName}_${year}년${month}월.xlsx`;
