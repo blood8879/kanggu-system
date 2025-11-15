@@ -64,14 +64,14 @@ export class ExcelGeneratorService {
   ): void {
     const { workerInfo } = EXCEL_CELL_MAPPING;
 
-    // 근로자 정보 입력 (G열에만 입력하면 됨) - 검정색으로 설정
-    // 근로자명: 이름(검정색) + 공백 + (서명)(회색 #808080)
+    // 근로자 정보 입력 (G열에만 입력하면 됨) - #002060 색상으로 설정
+    // 근로자명: 이름(#002060) + 공백 + (서명)(회색 #808080)
     if (worker.name) {
       const nameCell = worksheet.getCell(workerInfo.name);
       nameCell.value = {
         richText: [
           {
-            font: { color: { argb: 'FF000000' } }, // 검정색
+            font: { color: { argb: 'FF002060' } }, // #002060
             text: worker.name
           },
           {
@@ -114,6 +114,7 @@ export class ExcelGeneratorService {
 
   /**
    * 셀의 원본 내용에서 빈칸 부분만 근로자명으로 교체
+   * 근로자명은 #002060 색상, 나머지 원본 텍스트는 원래 색상 유지
    */
   private fillWorkerNameInCell(
     worksheet: ExcelJS.Worksheet,
@@ -124,36 +125,95 @@ export class ExcelGeneratorService {
     const originalValue = cell.value;
 
     if (typeof originalValue === 'string') {
-      // 일반 텍스트: 연속된 긴 공백(15자 이상)을 근로자명으로 교체
-      // 근로자명 앞뒤로 적당한 공백을 유지하여 가독성 확보
-      const newValue = originalValue.replace(/\s{15,}/g, `            ${workerName}            `);
-      cell.value = newValue;
+      // 일반 텍스트를 richText로 변환하면서 빈칸만 근로자명(#002060)으로 교체
+      const originalFont = cell.font || {};
+      const parts: ExcelJS.RichText[] = [];
 
-      // 폰트 색상을 검정색으로 설정
-      cell.font = {
-        ...cell.font,
-        color: { argb: 'FF000000' }
-      };
-    } else if (originalValue && typeof originalValue === 'object' && 'richText' in originalValue) {
-      // richText 형식인 경우: 각 텍스트 조각에서 빈칸 교체
-      const richTextValue = originalValue as { richText: ExcelJS.RichText[] };
-      const newRichText = richTextValue.richText.map(part => {
-        if (part.text && part.text.match(/\s{15,}/)) {
-          return {
-            ...part,
-            text: part.text.replace(/\s{15,}/g, `            ${workerName}            `)
-          };
+      // 15자 이상 연속된 공백을 기준으로 텍스트를 나눔
+      const regex = /\s{15,}/g;
+      let lastIndex = 0;
+      let match;
+
+      while ((match = regex.exec(originalValue)) !== null) {
+        // 빈칸 앞부분 텍스트 (원본 색상)
+        if (match.index > lastIndex) {
+          parts.push({
+            font: originalFont,
+            text: originalValue.substring(lastIndex, match.index)
+          });
         }
-        return part;
-      });
+
+        // 근로자명 (#002060)
+        parts.push({
+          font: { ...originalFont, color: { argb: 'FF002060' } },
+          text: `            ${workerName}            `
+        });
+
+        lastIndex = regex.lastIndex;
+      }
+
+      // 마지막 남은 텍스트 (원본 색상)
+      if (lastIndex < originalValue.length) {
+        parts.push({
+          font: originalFont,
+          text: originalValue.substring(lastIndex)
+        });
+      }
+
+      // richText로 설정
+      if (parts.length > 0) {
+        cell.value = { richText: parts };
+      }
+    } else if (originalValue && typeof originalValue === 'object' && 'richText' in originalValue) {
+      // richText 형식인 경우: 빈칸 부분을 찾아서 근로자명으로 교체
+      const richTextValue = originalValue as { richText: ExcelJS.RichText[] };
+      const newRichText: ExcelJS.RichText[] = [];
+
+      for (const part of richTextValue.richText) {
+        if (part.text && part.text.match(/\s{15,}/)) {
+          // 이 part에 긴 공백이 있으면 분리해서 처리
+          const regex = /\s{15,}/g;
+          let lastIndex = 0;
+          let match;
+
+          while ((match = regex.exec(part.text)) !== null) {
+            // 빈칸 앞부분 (원본 스타일)
+            if (match.index > lastIndex) {
+              newRichText.push({
+                ...part,
+                text: part.text.substring(lastIndex, match.index)
+              });
+            }
+
+            // 근로자명 (#002060)
+            newRichText.push({
+              font: { ...part.font, color: { argb: 'FF002060' } },
+              text: `            ${workerName}            `
+            });
+
+            lastIndex = regex.lastIndex;
+          }
+
+          // 마지막 남은 텍스트 (원본 스타일)
+          if (lastIndex < part.text.length) {
+            newRichText.push({
+              ...part,
+              text: part.text.substring(lastIndex)
+            });
+          }
+        } else {
+          // 빈칸이 없으면 그대로 유지
+          newRichText.push(part);
+        }
+      }
 
       cell.value = { richText: newRichText };
     } else {
-      // 원본 값이 없거나 다른 타입인 경우: 그냥 근로자명만 입력
+      // 원본 값이 없거나 다른 타입인 경우: 근로자명만 #002060으로 입력
       cell.value = workerName;
       cell.font = {
         ...cell.font,
-        color: { argb: 'FF000000' }
+        color: { argb: 'FF002060' }
       };
     }
   }
