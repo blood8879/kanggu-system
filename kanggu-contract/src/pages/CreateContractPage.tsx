@@ -2,12 +2,10 @@ import React, { useState } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { startOfMonth, endOfMonth } from 'date-fns';
 import { Card } from '../components/common/Card';
 import { Button } from '../components/common/Button';
 import { CompanyInfoSection } from '../components/contract/CompanyInfoSection';
 import { WorkersSection } from '../components/contract/WorkersSection';
-import { ContractInfoSection } from '../components/contract/ContractInfoSection';
 import { excelGenerator } from '../services/excelGenerator';
 
 // Zod validation schema
@@ -23,23 +21,19 @@ const contractSchema = z.object({
       residentNumber: z.string().optional(),
       address: z.string().optional(),
       phone: z.string().optional(),
+      // 각 근로자별 계약 조건
+      workplace: z.string().optional(),
+      jobType: z.string().optional(),
+      contractStartDate: z.date().optional(),
+      contractEndDate: z.date().optional(),
+      dailyWage: z.number().min(0, '일당은 0 이상이어야 합니다').optional(),
     })
   ).min(1, '최소 1명의 근로자가 필요합니다'),
-  workplace: z.string().optional(),
-  jobType: z.string().optional(),
-  contractStartDate: z.date(),
-  contractEndDate: z.date().optional(),
-  dailyWage: z.number().min(0, '일당은 0 이상이어야 합니다'),
 });
 
 type ContractFormValues = z.infer<typeof contractSchema>;
 
 export const CreateContractPage: React.FC = () => {
-  // 기본값: 이번 달 1일부터 말일까지
-  const today = new Date();
-  const defaultStartDate = startOfMonth(today);
-  const defaultEndDate = endOfMonth(today);
-
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
 
@@ -50,9 +44,6 @@ export const CreateContractPage: React.FC = () => {
       representative: '이진호',
       companyAddress: '서울시 마포구 희우정로16, 8층',
       workers: [{}],
-      dailyWage: 160000,
-      contractStartDate: defaultStartDate,
-      contractEndDate: defaultEndDate,
     },
   });
 
@@ -95,10 +86,6 @@ export const CreateContractPage: React.FC = () => {
 
           <Card>
             <WorkersSection />
-          </Card>
-
-          <Card>
-            <ContractInfoSection />
           </Card>
 
           <div className="flex justify-end gap-3">

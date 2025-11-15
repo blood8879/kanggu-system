@@ -479,32 +479,35 @@ export class ExcelGeneratorService {
   }
 
   /**
-   * 계약 조건 입력
+   * 계약 조건 입력 (각 근로자의 계약 조건 사용)
    */
   private fillContractInfo(
     worksheet: ExcelJS.Worksheet,
-    data: ContractFormData
+    worker: Worker
   ): void {
     const { contractInfo } = EXCEL_CELL_MAPPING;
 
-    worksheet.getCell(contractInfo.workplace).value = data.workplace || '';
-    worksheet.getCell(contractInfo.jobType).value = data.jobType || '';
-    worksheet.getCell(contractInfo.dailyWage).value = data.dailyWage;
+    worksheet.getCell(contractInfo.workplace).value = worker.workplace || '';
+    worksheet.getCell(contractInfo.jobType).value = worker.jobType || '';
+    worksheet.getCell(contractInfo.dailyWage).value = worker.dailyWage || 0;
 
-    // 날짜 포맷팅 (YYYY. MM. DD.)
-    const startDate = new Date(data.contractStartDate);
-    const endDate = data.contractEndDate
-      ? new Date(data.contractEndDate)
-      : new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0);
+    // 날짜가 설정되어 있는 경우에만 처리
+    if (worker.contractStartDate) {
+      // 날짜 포맷팅 (YYYY. MM. DD.)
+      const startDate = new Date(worker.contractStartDate);
+      const endDate = worker.contractEndDate
+        ? new Date(worker.contractEndDate)
+        : new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0);
 
-    // 계약 기간 계산 (개월)
-    const monthsDiff =
-      (endDate.getFullYear() - startDate.getFullYear()) * 12 +
-      (endDate.getMonth() - startDate.getMonth()) + 1;
+      // 계약 기간 계산 (개월)
+      const monthsDiff =
+        (endDate.getFullYear() - startDate.getFullYear()) * 12 +
+        (endDate.getMonth() - startDate.getMonth()) + 1;
 
-    // richText 형식으로 날짜 설정 (원본 스타일 유지)
-    this.setDateWithStyle(worksheet, contractInfo.startDate, this.formatDate(startDate) + ' ~');
-    this.setDateWithStyle(worksheet, contractInfo.endDate, `${this.formatDate(endDate)} (${monthsDiff}개월)`);
+      // richText 형식으로 날짜 설정 (원본 스타일 유지)
+      this.setDateWithStyle(worksheet, contractInfo.startDate, this.formatDate(startDate) + ' ~');
+      this.setDateWithStyle(worksheet, contractInfo.endDate, `${this.formatDate(endDate)} (${monthsDiff}개월)`);
+    }
   }
 
   /**
@@ -557,12 +560,17 @@ export class ExcelGeneratorService {
     worker: Worker
   ): Promise<ArrayBuffer> {
     const workbook = await this.loadTemplate();
-    const month = new Date(data.contractStartDate).getMonth() + 1;
+
+    // 근로자의 계약 시작일을 사용하여 월 결정 (없으면 현재 월 사용)
+    const contractDate = worker.contractStartDate
+      ? new Date(worker.contractStartDate)
+      : new Date();
+    const month = contractDate.getMonth() + 1;
     const worksheet = this.selectWorksheet(workbook, month);
 
     this.fillCompanyInfo(worksheet, data);
     this.fillWorkerInfo(worksheet, worker);
-    this.fillContractInfo(worksheet, data);
+    this.fillContractInfo(worksheet, worker);
 
     // 인쇄 영역을 51번 행까지 설정
     this.setPrintArea(worksheet);
@@ -611,10 +619,11 @@ export class ExcelGeneratorService {
   }
 
   /**
-   * 파일명 생성
+   * 파일명 생성 (근로자의 계약 시작일 사용)
    */
-  private generateFileName(worker: Worker, date: Date): string {
+  private generateFileName(worker: Worker): string {
     const workerName = worker.name || '근로자';
+    const date = worker.contractStartDate ? new Date(worker.contractStartDate) : new Date();
     const year = date.getFullYear();
     const month = date.getMonth() + 1;
     return `근로계약서_${workerName}_${year}년${month}월.xlsx`;
@@ -635,7 +644,7 @@ export class ExcelGeneratorService {
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = this.generateFileName(worker, new Date(data.contractStartDate));
+    link.download = this.generateFileName(worker);
     link.click();
 
     window.URL.revokeObjectURL(url);
@@ -675,7 +684,7 @@ export class ExcelGeneratorService {
     const buffers = await this.generateMultipleContracts(data);
 
     data.workers.forEach((worker, index) => {
-      const fileName = this.generateFileName(worker, new Date(data.contractStartDate));
+      const fileName = this.generateFileName(worker);
       zip.file(fileName, buffers[index]);
     });
 

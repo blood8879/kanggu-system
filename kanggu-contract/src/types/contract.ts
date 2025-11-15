@@ -3,6 +3,12 @@ export interface Worker {
   residentNumber?: string;
   address?: string;
   phone?: string;
+  // 각 근로자별 계약 조건
+  workplace?: string;
+  jobType?: string;
+  contractStartDate?: Date;
+  contractEndDate?: Date;
+  dailyWage?: number;
 }
 
 export interface ContractFormData {
@@ -13,13 +19,6 @@ export interface ContractFormData {
   siteAddress?: string;
   siteManager?: string;
 
-  // 근로자 정보 (배열)
+  // 근로자 정보 (배열) - 각 근로자별로 계약 조건 포함
   workers: Worker[];
-
-  // 계약 조건
-  workplace?: string;
-  jobType?: string;
-  contractStartDate: Date;
-  contractEndDate?: Date; // 자동 계산
-  dailyWage: number;
 }
