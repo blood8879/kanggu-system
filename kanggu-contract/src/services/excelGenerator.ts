@@ -253,28 +253,84 @@ export class ExcelGeneratorService {
       if (mode === 'name-fields') {
         // 'name-fields' 모드: "성명 :" 패턴 뒤의 모든 긴 공백을 교체
         const newRichText: ExcelJS.RichText[] = [];
-        const nameFieldRegex = /(성명\s*:\s*)(\s{15,})/g;
 
-        for (const part of richTextValue.richText) {
-          if (part.text && part.text.match(/성명\s*:\s*\s{15,}/)) {
-            // 이 part에 "성명 :" 패턴이 있으면 분리해서 처리
+        // 먼저 모든 "성명 :" 패턴의 위치를 찾습니다
+        const nameFieldPositions: Array<{ partIndex: number; textIndex: number }> = [];
+        richTextValue.richText.forEach((part, partIndex) => {
+          if (part.text && part.text.includes('성명')) {
+            const matches = Array.from(part.text.matchAll(/성명\s*:/g));
+            matches.forEach(match => {
+              nameFieldPositions.push({
+                partIndex,
+                textIndex: match.index! + match[0].length
+              });
+            });
+          }
+        });
+
+        // "성명 :" 이후에 나오는 긴 공백들을 표시
+        const blanksToFill = new Set<string>(); // "partIndex:matchIndex" 형식
+
+        nameFieldPositions.forEach(namePos => {
+          let foundBlank = false;
+
+          // 같은 part에서 "성명 :" 이후의 공백 찾기
+          const samePart = richTextValue.richText[namePos.partIndex];
+          if (samePart.text) {
+            const remainingText = samePart.text.substring(namePos.textIndex);
+            const blankMatch = remainingText.match(/\s{15,}/);
+            if (blankMatch) {
+              const actualIndex = namePos.textIndex + blankMatch.index!;
+              blanksToFill.add(`${namePos.partIndex}:${actualIndex}`);
+              foundBlank = true;
+            }
+          }
+
+          // 같은 part에서 못 찾았으면 다음 part들에서 찾기
+          if (!foundBlank) {
+            for (let i = namePos.partIndex + 1; i < richTextValue.richText.length; i++) {
+              const nextPart = richTextValue.richText[i];
+              if (nextPart.text && nextPart.text.match(/\s{15,}/)) {
+                const match = nextPart.text.match(/\s{15,}/);
+                blanksToFill.add(`${i}:${match!.index!}`);
+                break; // 첫 번째 공백만 채우고 중단
+              }
+            }
+          }
+        });
+
+        // 이제 richText를 다시 구성하면서 표시된 공백들을 근로자명으로 교체
+        richTextValue.richText.forEach((part, partIndex) => {
+          if (!part.text) {
+            newRichText.push(part);
+            return;
+          }
+
+          // 이 part에 교체할 공백이 있는지 확인
+          const blanksInThisPart = Array.from(blanksToFill)
+            .filter(key => key.startsWith(`${partIndex}:`))
+            .map(key => parseInt(key.split(':')[1]))
+            .sort((a, b) => a - b);
+
+          if (blanksInThisPart.length === 0) {
+            newRichText.push(part);
+          } else {
+            // 이 part를 분할해서 처리
             let lastIndex = 0;
-            let match;
 
-            while ((match = nameFieldRegex.exec(part.text)) !== null) {
-              // "성명 :" 이전 텍스트 (원본 스타일)
-              if (match.index > lastIndex) {
+            blanksInThisPart.forEach(blankIndex => {
+              const blankMatch = part.text!.substring(blankIndex).match(/\s{15,}/);
+              if (!blankMatch) return;
+
+              const blankEnd = blankIndex + blankMatch[0].length;
+
+              // 공백 이전 텍스트 (원본 스타일)
+              if (blankIndex > lastIndex) {
                 newRichText.push({
                   ...part,
-                  text: part.text.substring(lastIndex, match.index)
+                  text: part.text!.substring(lastIndex, blankIndex)
                 });
               }
-
-              // "성명 :" 부분 (원본 스타일)
-              newRichText.push({
-                ...part,
-                text: match[1]
-              });
 
               // 근로자명 (#002060)
               newRichText.push({
@@ -282,21 +338,18 @@ export class ExcelGeneratorService {
                 text: `            ${workerName}            `
               });
 
-              lastIndex = nameFieldRegex.lastIndex;
-            }
+              lastIndex = blankEnd;
+            });
 
             // 마지막 남은 텍스트 (원본 스타일)
-            if (lastIndex < part.text.length) {
+            if (lastIndex < part.text!.length) {
               newRichText.push({
                 ...part,
-                text: part.text.substring(lastIndex)
+                text: part.text!.substring(lastIndex)
               });
             }
-          } else {
-            // "성명 :" 패턴이 없으면 그대로 유지
-            newRichText.push(part);
           }
-        }
+        });
 
         cell.value = { richText: newRichText };
       } else if (mode === 'last') {
