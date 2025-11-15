@@ -64,14 +64,14 @@ export class ExcelGeneratorService {
   ): void {
     const { workerInfo } = EXCEL_CELL_MAPPING;
 
-    // 근로자 정보 입력 (G열에만 입력하면 됨) - 검정색으로 설정
-    // 근로자명: 이름(검정색) + 공백 + (서명)(회색 #808080)
+    // 근로자 정보 입력 (G열에만 입력하면 됨) - #002060 색상으로 설정
+    // 근로자명: 이름(#002060) + 공백 + (서명)(회색 #808080)
     if (worker.name) {
       const nameCell = worksheet.getCell(workerInfo.name);
       nameCell.value = {
         richText: [
           {
-            font: { color: { argb: 'FF000000' } }, // 검정색
+            font: { color: { argb: 'FF002060' } }, // #002060
             text: worker.name
           },
           {
@@ -83,11 +83,381 @@ export class ExcelGeneratorService {
           }
         ]
       };
+
+      // 추가 서명 필드들에 근로자명 입력 (원본 내용의 빈칸만 교체)
+      // E4: 단순히 이름만 (가운데 정렬)
+      const cellE4 = worksheet.getCell(workerInfo.signatureE4);
+      cellE4.value = worker.name;
+      cellE4.alignment = { horizontal: 'center', vertical: 'middle' };
+      cellE4.font = { ...cellE4.font, color: { argb: 'FF002060' } };
+
+      // B19: "동의자" 뒤 빈칸을 근로자명으로 교체
+      this.fillWorkerNameInCell(worksheet, workerInfo.signatureB19, worker.name);
+
+      // B21: "동의자" 뒤 빈칸을 근로자명으로 교체 (마지막만)
+      this.fillWorkerNameInCell(worksheet, workerInfo.signatureB21, worker.name, 'last');
+
+      // B25: "동의자 성명 :" 뒤 빈칸을 근로자명으로 교체 (마지막만)
+      this.fillWorkerNameInCell(worksheet, workerInfo.signatureB25, worker.name, 'last');
+
+      // B36: "성명 :" 패턴 뒤의 모든 빈칸을 근로자명으로 교체 (특수 케이스)
+      this.fillWorkerNameInCell(worksheet, workerInfo.signatureB36, worker.name, 'name-fields');
+
+      // B44: "동의자 성명 :" 뒤 빈칸을 근로자명으로 교체
+      this.fillWorkerNameInCell(worksheet, workerInfo.signatureB44, worker.name);
+
+      // B45: 마지막 빈칸을 근로자명으로 교체
+      this.fillWorkerNameInCell(worksheet, workerInfo.signatureB45, worker.name);
     }
 
     this.setCellWithBlackText(worksheet, workerInfo.residentNumber, worker.residentNumber || '');
     this.setCellWithBlackText(worksheet, workerInfo.address, worker.address || '');
     this.setCellWithBlackText(worksheet, workerInfo.phone, worker.phone || '');
+
+    // 행 높이 설정
+    worksheet.getRow(35).height = 58.2;
+    worksheet.getRow(40).height = 33;
+  }
+
+  /**
+   * 셀의 원본 내용에서 빈칸 부분만 근로자명으로 교체
+   * 근로자명은 #002060 색상, 나머지 원본 텍스트는 원래 색상 유지
+   * @param mode - 'all': 모든 빈칸 교체 (기본값), 'first': 첫 번째 빈칸만 교체, 'last': 마지막 빈칸만 교체, 'name-fields': "성명 :" 뒤의 모든 빈칸 교체
+   */
+  private fillWorkerNameInCell(
+    worksheet: ExcelJS.Worksheet,
+    cellAddress: string,
+    workerName: string,
+    mode: 'all' | 'first' | 'last' | 'name-fields' = 'all'
+  ): void {
+    const cell = worksheet.getCell(cellAddress);
+    const originalValue = cell.value;
+
+    if (typeof originalValue === 'string') {
+      // 일반 텍스트를 richText로 변환하면서 빈칸만 근로자명(#002060)으로 교체
+      const originalFont = cell.font || {};
+      const parts: ExcelJS.RichText[] = [];
+
+      // 15자 이상 연속된 공백을 기준으로 텍스트를 나눔
+      const regex = /\s{15,}/g;
+
+      if (mode === 'name-fields') {
+        // 'name-fields' 모드: "성명 :" 패턴 뒤의 모든 긴 공백을 교체
+        const nameFieldRegex = /(성명\s*:\s*)(\s{15,})/g;
+        let lastIndex = 0;
+        let match;
+
+        while ((match = nameFieldRegex.exec(originalValue)) !== null) {
+          // "성명 :" 이전 텍스트 (원본 색상)
+          if (match.index > lastIndex) {
+            parts.push({
+              font: originalFont,
+              text: originalValue.substring(lastIndex, match.index)
+            });
+          }
+
+          // "성명 :" 부분 (원본 색상)
+          parts.push({
+            font: originalFont,
+            text: match[1]
+          });
+
+          // 근로자명 (#002060)
+          parts.push({
+            font: { ...originalFont, color: { argb: 'FF002060' } },
+            text: `            ${workerName}            `
+          });
+
+          lastIndex = nameFieldRegex.lastIndex;
+        }
+
+        // 마지막 남은 텍스트 (원본 색상)
+        if (lastIndex < originalValue.length) {
+          parts.push({
+            font: originalFont,
+            text: originalValue.substring(lastIndex)
+          });
+        }
+      } else if (mode === 'last') {
+        // 'last' 모드: 마지막 긴 공백만 교체
+        const matches = Array.from(originalValue.matchAll(/\s{15,}/g));
+        if (matches.length > 0) {
+          const lastMatch = matches[matches.length - 1];
+
+          // 마지막 매치 이전 텍스트 (원본 색상)
+          if (lastMatch.index && lastMatch.index > 0) {
+            parts.push({
+              font: originalFont,
+              text: originalValue.substring(0, lastMatch.index)
+            });
+          }
+
+          // 근로자명 (#002060)
+          parts.push({
+            font: { ...originalFont, color: { argb: 'FF002060' } },
+            text: `            ${workerName}            `
+          });
+
+          // 마지막 매치 이후 텍스트 (원본 색상)
+          const afterIndex = lastMatch.index! + lastMatch[0].length;
+          if (afterIndex < originalValue.length) {
+            parts.push({
+              font: originalFont,
+              text: originalValue.substring(afterIndex)
+            });
+          }
+        }
+      } else {
+        // 'first' 또는 'all' 모드
+        let lastIndex = 0;
+        let match;
+        let replaceCount = 0;
+
+        while ((match = regex.exec(originalValue)) !== null) {
+          // mode가 'first'이고 이미 한 번 교체했으면 나머지는 그대로 유지
+          if (mode === 'first' && replaceCount > 0) {
+            break;
+          }
+
+          // 빈칸 앞부분 텍스트 (원본 색상)
+          if (match.index > lastIndex) {
+            parts.push({
+              font: originalFont,
+              text: originalValue.substring(lastIndex, match.index)
+            });
+          }
+
+          // 근로자명 (#002060)
+          parts.push({
+            font: { ...originalFont, color: { argb: 'FF002060' } },
+            text: `            ${workerName}            `
+          });
+
+          lastIndex = regex.lastIndex;
+          replaceCount++;
+        }
+
+        // 마지막 남은 텍스트 (원본 색상)
+        if (lastIndex < originalValue.length) {
+          parts.push({
+            font: originalFont,
+            text: originalValue.substring(lastIndex)
+          });
+        }
+      }
+
+      // richText로 설정
+      if (parts.length > 0) {
+        cell.value = { richText: parts };
+      }
+    } else if (originalValue && typeof originalValue === 'object' && 'richText' in originalValue) {
+      // richText 형식인 경우: 빈칸 부분을 찾아서 근로자명으로 교체
+      const richTextValue = originalValue as { richText: ExcelJS.RichText[] };
+
+      if (mode === 'name-fields') {
+        // 'name-fields' 모드: "성명 :" 패턴 뒤의 모든 긴 공백을 교체
+        const newRichText: ExcelJS.RichText[] = [];
+
+        // 먼저 모든 "성명 :" 패턴의 위치를 찾습니다
+        const nameFieldPositions: Array<{ partIndex: number; textIndex: number }> = [];
+        richTextValue.richText.forEach((part, partIndex) => {
+          if (part.text && part.text.includes('성명')) {
+            const matches = Array.from(part.text.matchAll(/성명\s*:/g));
+            matches.forEach(match => {
+              nameFieldPositions.push({
+                partIndex,
+                textIndex: match.index! + match[0].length
+              });
+            });
+          }
+        });
+
+        // "성명 :" 이후에 나오는 긴 공백들을 표시
+        const blanksToFill = new Set<string>(); // "partIndex:matchIndex" 형식
+
+        nameFieldPositions.forEach(namePos => {
+          let foundBlank = false;
+
+          // 같은 part에서 "성명 :" 이후의 공백 찾기
+          const samePart = richTextValue.richText[namePos.partIndex];
+          if (samePart.text) {
+            const remainingText = samePart.text.substring(namePos.textIndex);
+            const blankMatch = remainingText.match(/\s{15,}/);
+            if (blankMatch) {
+              const actualIndex = namePos.textIndex + blankMatch.index!;
+              blanksToFill.add(`${namePos.partIndex}:${actualIndex}`);
+              foundBlank = true;
+            }
+          }
+
+          // 같은 part에서 못 찾았으면 다음 part들에서 찾기
+          if (!foundBlank) {
+            for (let i = namePos.partIndex + 1; i < richTextValue.richText.length; i++) {
+              const nextPart = richTextValue.richText[i];
+              if (nextPart.text && nextPart.text.match(/\s{15,}/)) {
+                const match = nextPart.text.match(/\s{15,}/);
+                blanksToFill.add(`${i}:${match!.index!}`);
+                break; // 첫 번째 공백만 채우고 중단
+              }
+            }
+          }
+        });
+
+        // 이제 richText를 다시 구성하면서 표시된 공백들을 근로자명으로 교체
+        richTextValue.richText.forEach((part, partIndex) => {
+          if (!part.text) {
+            newRichText.push(part);
+            return;
+          }
+
+          // 이 part에 교체할 공백이 있는지 확인
+          const blanksInThisPart = Array.from(blanksToFill)
+            .filter(key => key.startsWith(`${partIndex}:`))
+            .map(key => parseInt(key.split(':')[1]))
+            .sort((a, b) => a - b);
+
+          if (blanksInThisPart.length === 0) {
+            newRichText.push(part);
+          } else {
+            // 이 part를 분할해서 처리
+            let lastIndex = 0;
+
+            blanksInThisPart.forEach(blankIndex => {
+              const blankMatch = part.text!.substring(blankIndex).match(/\s{15,}/);
+              if (!blankMatch) return;
+
+              const blankEnd = blankIndex + blankMatch[0].length;
+
+              // 공백 이전 텍스트 (원본 스타일)
+              if (blankIndex > lastIndex) {
+                newRichText.push({
+                  ...part,
+                  text: part.text!.substring(lastIndex, blankIndex)
+                });
+              }
+
+              // 근로자명 (#002060)
+              newRichText.push({
+                font: { ...part.font, color: { argb: 'FF002060' } },
+                text: `            ${workerName}            `
+              });
+
+              lastIndex = blankEnd;
+            });
+
+            // 마지막 남은 텍스트 (원본 스타일)
+            if (lastIndex < part.text!.length) {
+              newRichText.push({
+                ...part,
+                text: part.text!.substring(lastIndex)
+              });
+            }
+          }
+        });
+
+        cell.value = { richText: newRichText };
+      } else if (mode === 'last') {
+        // 'last' 모드: 마지막 긴 공백만 교체
+        // 먼저 모든 공백 위치를 찾음
+        const allMatches: Array<{ partIndex: number; matchIndex: number; matchLength: number; match: RegExpMatchArray }> = [];
+        richTextValue.richText.forEach((part, partIndex) => {
+          if (part.text) {
+            const matches = Array.from(part.text.matchAll(/\s{15,}/g));
+            matches.forEach(match => {
+              allMatches.push({ partIndex, matchIndex: match.index!, matchLength: match[0].length, match });
+            });
+          }
+        });
+
+        if (allMatches.length > 0) {
+          const lastMatchInfo = allMatches[allMatches.length - 1];
+          const newRichText: ExcelJS.RichText[] = [];
+
+          richTextValue.richText.forEach((part, partIndex) => {
+            if (partIndex === lastMatchInfo.partIndex && part.text) {
+              // 마지막 매치가 있는 part 처리
+              const beforeText = part.text.substring(0, lastMatchInfo.matchIndex);
+              const afterText = part.text.substring(lastMatchInfo.matchIndex + lastMatchInfo.matchLength);
+
+              if (beforeText) {
+                newRichText.push({ ...part, text: beforeText });
+              }
+
+              newRichText.push({
+                font: { ...part.font, color: { argb: 'FF002060' } },
+                text: `            ${workerName}            `
+              });
+
+              if (afterText) {
+                newRichText.push({ ...part, text: afterText });
+              }
+            } else {
+              // 다른 part는 그대로 유지
+              newRichText.push(part);
+            }
+          });
+
+          cell.value = { richText: newRichText };
+        }
+      } else {
+        // 'first' 또는 'all' 모드
+        const newRichText: ExcelJS.RichText[] = [];
+        let totalReplaceCount = 0;
+
+        for (const part of richTextValue.richText) {
+          if (part.text && part.text.match(/\s{15,}/) && (mode === 'all' || totalReplaceCount === 0)) {
+            // 이 part에 긴 공백이 있으면 분리해서 처리
+            const regex = /\s{15,}/g;
+            let lastIndex = 0;
+            let match;
+
+            while ((match = regex.exec(part.text)) !== null) {
+              // mode가 'first'이고 이미 한 번 교체했으면 중단
+              if (mode === 'first' && totalReplaceCount > 0) {
+                break;
+              }
+
+              // 빈칸 앞부분 (원본 스타일)
+              if (match.index > lastIndex) {
+                newRichText.push({
+                  ...part,
+                  text: part.text.substring(lastIndex, match.index)
+                });
+              }
+
+              // 근로자명 (#002060)
+              newRichText.push({
+                font: { ...part.font, color: { argb: 'FF002060' } },
+                text: `            ${workerName}            `
+              });
+
+              lastIndex = regex.lastIndex;
+              totalReplaceCount++;
+            }
+
+            // 마지막 남은 텍스트 (원본 스타일)
+            if (lastIndex < part.text.length) {
+              newRichText.push({
+                ...part,
+                text: part.text.substring(lastIndex)
+              });
+            }
+          } else {
+            // 빈칸이 없거나 이미 교체했으면 그대로 유지
+            newRichText.push(part);
+          }
+        }
+
+        cell.value = { richText: newRichText };
+      }
+    } else {
+      // 원본 값이 없거나 다른 타입인 경우: 근로자명만 #002060으로 입력
+      cell.value = workerName;
+      cell.font = {
+        ...cell.font,
+        color: { argb: 'FF002060' }
+      };
+    }
   }
 
   /**
