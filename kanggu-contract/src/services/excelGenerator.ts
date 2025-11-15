@@ -113,6 +113,10 @@ export class ExcelGeneratorService {
     this.setCellWithBlackText(worksheet, workerInfo.residentNumber, worker.residentNumber || '');
     this.setCellWithBlackText(worksheet, workerInfo.address, worker.address || '');
     this.setCellWithBlackText(worksheet, workerInfo.phone, worker.phone || '');
+
+    // 행 높이 설정
+    worksheet.getRow(35).height = 58.2;
+    worksheet.getRow(40).height = 33;
   }
 
   /**
