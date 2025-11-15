@@ -48,26 +48,35 @@ export const CreateContractPage: React.FC = () => {
   });
 
   const onSubmit = async (data: ContractFormValues) => {
+    console.log('=== 계약서 생성 시작 ===');
+    console.log('폼 데이터:', data);
+
     setIsGenerating(true);
 
     try {
       if (data.workers.length === 1) {
+        console.log('단일 근로자 모드');
+        console.log('근로자 데이터:', data.workers[0]);
         // 단일 근로자: 파일 1개 다운로드
         await excelGenerator.downloadSingleFile(data, data.workers[0]);
         alert('계약서 생성 완료!');
       } else {
+        console.log('다중 근로자 모드:', data.workers.length);
         // 다중 근로자: 순차 다운로드
         await excelGenerator.downloadMultipleFiles(
           data,
           (current, total) => {
+            console.log(`진행: ${current}/${total}`);
             setProgress({ current, total });
           }
         );
         alert(`${data.workers.length}개 계약서 생성 완료!`);
       }
     } catch (error) {
-      console.error('계약서 생성 실패:', error);
-      alert('계약서 생성 중 오류가 발생했습니다.');
+      console.error('=== 계약서 생성 실패 ===');
+      console.error('에러 상세:', error);
+      console.error('스택:', error instanceof Error ? error.stack : '');
+      alert(`계약서 생성 중 오류가 발생했습니다.\n에러: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       setIsGenerating(false);
       setProgress({ current: 0, total: 0 });
