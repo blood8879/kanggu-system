@@ -1,35 +1,14 @@
-import { useEffect } from 'react';
 import { useFormContext, useFieldArray } from 'react-hook-form';
-import { endOfMonth } from 'date-fns';
 import { Button } from '../common/Button';
 import { Input } from '../common/Input';
 import type { ContractFormData } from '../../types/contract';
 
 export const WorkersSection = () => {
-  const { register, control, watch, setValue } = useFormContext<ContractFormData>();
+  const { register, control } = useFormContext<ContractFormData>();
   const { fields, append, remove } = useFieldArray({
     control,
     name: 'workers',
   });
-
-  // 각 근로자의 계약 시작일 감시
-  const watchedWorkers = watch('workers');
-
-  // 각 근로자별 계약 종료일 자동 설정
-  useEffect(() => {
-    watchedWorkers?.forEach((worker, index) => {
-      if (worker.contractStartDate) {
-        const startDate = new Date(worker.contractStartDate);
-        const endDate = endOfMonth(startDate);
-
-        // 현재 설정된 종료일과 비교하여 다를 때만 업데이트 (무한 루프 방지)
-        const currentEndDate = worker.contractEndDate ? new Date(worker.contractEndDate) : null;
-        if (!currentEndDate || currentEndDate.getTime() !== endDate.getTime()) {
-          setValue(`workers.${index}.contractEndDate`, endDate, { shouldValidate: false });
-        }
-      }
-    });
-  }, [watchedWorkers, setValue]);
 
   return (
     <section className="space-y-4">

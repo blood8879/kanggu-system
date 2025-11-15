@@ -25,7 +25,7 @@ const contractSchema = z.object({
       workplace: z.string().optional(),
       jobType: z.string().optional(),
       contractStartDate: z.date().nullable().optional(),
-      contractEndDate: z.date().nullable().optional(),
+      // contractEndDate는 스키마에서 제외하고 자동 계산
       // NaN을 허용하도록 수정
       dailyWage: z.number().min(0, '일당은 0 이상이어야 합니다').optional().or(z.nan().transform(() => undefined)),
     })
@@ -63,26 +63,38 @@ export const CreateContractPage: React.FC = () => {
     console.log('폼 데이터:', data);
     console.log('폼 검증 통과!');
 
+    // 각 근로자의 contractEndDate를 자동 계산하여 추가
+    const workersWithEndDate = data.workers.map(worker => {
+      if (worker.contractStartDate) {
+        const startDate = new Date(worker.contractStartDate);
+        const endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0);
+        return { ...worker, contractEndDate: endDate };
+      }
+      return worker;
+    });
+
+    const processedData = { ...data, workers: workersWithEndDate };
+
     setIsGenerating(true);
 
     try {
-      if (data.workers.length === 1) {
+      if (processedData.workers.length === 1) {
         console.log('단일 근로자 모드');
-        console.log('근로자 데이터:', data.workers[0]);
+        console.log('근로자 데이터:', processedData.workers[0]);
         // 단일 근로자: 파일 1개 다운로드
-        await excelGenerator.downloadSingleFile(data, data.workers[0]);
+        await excelGenerator.downloadSingleFile(processedData, processedData.workers[0]);
         alert('계약서 생성 완료!');
       } else {
-        console.log('다중 근로자 모드:', data.workers.length);
+        console.log('다중 근로자 모드:', processedData.workers.length);
         // 다중 근로자: 순차 다운로드
         await excelGenerator.downloadMultipleFiles(
-          data,
+          processedData,
           (current, total) => {
             console.log(`진행: ${current}/${total}`);
             setProgress({ current, total });
           }
         );
-        alert(`${data.workers.length}개 계약서 생성 완료!`);
+        alert(`${processedData.workers.length}개 계약서 생성 완료!`);
       }
     } catch (error) {
       console.error('=== 계약서 생성 실패 ===');
