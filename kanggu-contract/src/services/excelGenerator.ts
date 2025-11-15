@@ -85,14 +85,17 @@ export class ExcelGeneratorService {
       };
 
       // 추가 서명 필드들에 근로자명 입력 (원본 내용의 빈칸만 교체)
-      // E4: 단순히 이름만
-      this.fillWorkerNameInCell(worksheet, workerInfo.signatureE4, worker.name);
+      // E4: 단순히 이름만 (가운데 정렬)
+      const cellE4 = worksheet.getCell(workerInfo.signatureE4);
+      cellE4.value = worker.name;
+      cellE4.alignment = { horizontal: 'center', vertical: 'middle' };
+      cellE4.font = { ...cellE4.font, color: { argb: 'FF002060' } };
 
       // B19: "동의자" 뒤 빈칸을 근로자명으로 교체
       this.fillWorkerNameInCell(worksheet, workerInfo.signatureB19, worker.name);
 
-      // B21: "동의자" 뒤 빈칸을 근로자명으로 교체
-      this.fillWorkerNameInCell(worksheet, workerInfo.signatureB21, worker.name);
+      // B21: "동의자" 뒤 빈칸을 근로자명으로 교체 (첫 번째만)
+      this.fillWorkerNameInCell(worksheet, workerInfo.signatureB21, worker.name, 'first');
 
       // B25: "동의자 성명 :" 뒤 빈칸을 근로자명으로 교체
       this.fillWorkerNameInCell(worksheet, workerInfo.signatureB25, worker.name);
@@ -115,11 +118,13 @@ export class ExcelGeneratorService {
   /**
    * 셀의 원본 내용에서 빈칸 부분만 근로자명으로 교체
    * 근로자명은 #002060 색상, 나머지 원본 텍스트는 원래 색상 유지
+   * @param mode - 'all': 모든 빈칸 교체 (기본값), 'first': 첫 번째 빈칸만 교체
    */
   private fillWorkerNameInCell(
     worksheet: ExcelJS.Worksheet,
     cellAddress: string,
-    workerName: string
+    workerName: string,
+    mode: 'all' | 'first' = 'all'
   ): void {
     const cell = worksheet.getCell(cellAddress);
     const originalValue = cell.value;
@@ -133,8 +138,14 @@ export class ExcelGeneratorService {
       const regex = /\s{15,}/g;
       let lastIndex = 0;
       let match;
+      let replaceCount = 0;
 
       while ((match = regex.exec(originalValue)) !== null) {
+        // mode가 'first'이고 이미 한 번 교체했으면 나머지는 그대로 유지
+        if (mode === 'first' && replaceCount > 0) {
+          break;
+        }
+
         // 빈칸 앞부분 텍스트 (원본 색상)
         if (match.index > lastIndex) {
           parts.push({
@@ -150,6 +161,7 @@ export class ExcelGeneratorService {
         });
 
         lastIndex = regex.lastIndex;
+        replaceCount++;
       }
 
       // 마지막 남은 텍스트 (원본 색상)
@@ -168,15 +180,22 @@ export class ExcelGeneratorService {
       // richText 형식인 경우: 빈칸 부분을 찾아서 근로자명으로 교체
       const richTextValue = originalValue as { richText: ExcelJS.RichText[] };
       const newRichText: ExcelJS.RichText[] = [];
+      let totalReplaceCount = 0;
 
       for (const part of richTextValue.richText) {
-        if (part.text && part.text.match(/\s{15,}/)) {
+        if (part.text && part.text.match(/\s{15,}/) && (mode === 'all' || totalReplaceCount === 0)) {
           // 이 part에 긴 공백이 있으면 분리해서 처리
           const regex = /\s{15,}/g;
           let lastIndex = 0;
           let match;
+          let partReplaceCount = 0;
 
           while ((match = regex.exec(part.text)) !== null) {
+            // mode가 'first'이고 이미 한 번 교체했으면 중단
+            if (mode === 'first' && totalReplaceCount > 0) {
+              break;
+            }
+
             // 빈칸 앞부분 (원본 스타일)
             if (match.index > lastIndex) {
               newRichText.push({
@@ -192,6 +211,8 @@ export class ExcelGeneratorService {
             });
 
             lastIndex = regex.lastIndex;
+            partReplaceCount++;
+            totalReplaceCount++;
           }
 
           // 마지막 남은 텍스트 (원본 스타일)
@@ -202,7 +223,7 @@ export class ExcelGeneratorService {
             });
           }
         } else {
-          // 빈칸이 없으면 그대로 유지
+          // 빈칸이 없거나 이미 교체했으면 그대로 유지
           newRichText.push(part);
         }
       }
