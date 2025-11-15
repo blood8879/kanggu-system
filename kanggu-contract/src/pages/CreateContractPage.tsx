@@ -60,6 +60,7 @@ export const CreateContractPage: React.FC = () => {
   const onSubmit = async (data: ContractFormValues) => {
     console.log('=== 계약서 생성 시작 ===');
     console.log('폼 데이터:', data);
+    console.log('폼 검증 통과!');
 
     setIsGenerating(true);
 
@@ -93,11 +94,10 @@ export const CreateContractPage: React.FC = () => {
     }
   };
 
-  // 버튼 클릭 핸들러 (디버깅용)
-  const handleButtonClick = () => {
-    console.log('=== 계약서 생성 버튼 클릭됨 ===');
-    console.log('현재 폼 상태:', methods.getValues());
-    console.log('폼 에러:', methods.formState.errors);
+  const onError = (errors: any) => {
+    console.error('=== 폼 제출 실패 (유효성 검증 에러) ===');
+    console.error('에러 목록:', errors);
+    alert('폼에 오류가 있습니다. 필수 항목을 확인해주세요.');
   };
 
   return (
@@ -105,7 +105,7 @@ export const CreateContractPage: React.FC = () => {
       <h1 className="text-2xl sm:text-3xl font-bold mb-6">계약서 생성</h1>
 
       <FormProvider {...methods}>
-        <form onSubmit={methods.handleSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={methods.handleSubmit(onSubmit, onError)} className="space-y-6">
           <Card>
             <CompanyInfoSection />
           </Card>
@@ -118,9 +118,13 @@ export const CreateContractPage: React.FC = () => {
           {Object.keys(formErrors).length > 0 && (
             <Card className="bg-red-50 border-red-200">
               <h3 className="text-red-700 font-bold mb-2">유효성 검증 에러:</h3>
-              <pre className="text-xs text-red-600 overflow-auto">
-                {JSON.stringify(formErrors, null, 2)}
-              </pre>
+              <div className="text-xs text-red-600">
+                {Object.entries(formErrors).map(([key, error]) => (
+                  <div key={key}>
+                    <strong>{key}:</strong> {error?.message || '알 수 없는 에러'}
+                  </div>
+                ))}
+              </div>
             </Card>
           )}
 
@@ -136,7 +140,6 @@ export const CreateContractPage: React.FC = () => {
             <Button
               type="submit"
               disabled={isGenerating}
-              onClick={handleButtonClick}
             >
               {isGenerating ? '생성 중...' : '계약서 생성'}
             </Button>
