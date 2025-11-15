@@ -107,15 +107,19 @@ export const WorkersSection = () => {
               })}
             />
 
-            <Input
-              label="계약 종료일"
-              type="date"
-              {...register(`workers.${index}.contractEndDate` as const, {
-                valueAsDate: true,
-              })}
-              disabled
-              className="bg-gray-100"
-            />
+            {/* 계약 종료일 - 자동 계산되어 텍스트로 표시 */}
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium text-gray-700">계약 종료일</label>
+              <div className="px-2 py-2 border border-gray-300 rounded bg-gray-100 text-gray-700">
+                {watchedWorkers?.[index]?.contractEndDate
+                  ? new Date(watchedWorkers[index].contractEndDate!).toLocaleDateString('ko-KR', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    })
+                  : '계약 시작일을 선택하면 자동으로 설정됩니다'}
+              </div>
+            </div>
 
             <Input
               label="일당"
