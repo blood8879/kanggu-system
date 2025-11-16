@@ -601,10 +601,14 @@ export class ExcelGeneratorService {
     // 인쇄 영역을 A1:J51로 설정 (J열, 51번 행까지 포함)
     worksheet.pageSetup.printArea = 'A1:J51';
 
-    // 한 페이지에 맞춤
+    // 한 페이지에 맞춤 (너비 1페이지, 높이 1페이지)
     worksheet.pageSetup.fitToPage = true;
     worksheet.pageSetup.fitToWidth = 1;
-    worksheet.pageSetup.fitToHeight = 0; // 0 = 높이 제한 없음 (자동)
+    worksheet.pageSetup.fitToHeight = 1;
+
+    // 용지 방향 및 크기
+    worksheet.pageSetup.orientation = 'portrait';
+    worksheet.pageSetup.paperSize = 9; // A4
 
     // 여백 설정 (인치)
     worksheet.pageSetup.margins = {
