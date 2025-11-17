@@ -15,8 +15,6 @@ const DEFAULT_VALUES: ContractFormData = {
   representative: '이진호',
   companyAddress: '서울시 마포구 희우정로16, 8층',
   workers: [{}], // 최소 1명
-  dailyWage: 160000,
-  contractStartDate: new Date(),
 };
 
 export const useContractStore = create<ContractStore>((set) => ({
