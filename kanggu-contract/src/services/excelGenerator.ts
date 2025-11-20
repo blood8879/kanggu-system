@@ -507,6 +507,9 @@ export class ExcelGeneratorService {
       // richText 형식으로 날짜 설정 (원본 스타일 유지)
       this.setDateWithStyle(worksheet, contractInfo.startDate, this.formatDate(startDate) + ' ~');
       this.setDateWithStyle(worksheet, contractInfo.endDate, `${this.formatDate(endDate)} (${monthsDiff}개월)`);
+
+      // A46 작성일 설정 (계약 시작일 사용)
+      this.setWrittenDate(worksheet, contractInfo.writtenDate, startDate);
     }
   }
 
@@ -550,6 +553,66 @@ export class ExcelGeneratorService {
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     return `${year}. ${month}. ${day}.`;
+  }
+
+  /**
+   * A46 작성일 설정
+   * 템플릿의 "작성일 :    2025  .  11     .        ." 형식에 날짜 기입
+   */
+  private setWrittenDate(
+    worksheet: ExcelJS.Worksheet,
+    cellAddress: string,
+    date: Date
+  ): void {
+    const cell = worksheet.getCell(cellAddress);
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+
+    // 원본 셀 값 읽기
+    const originalValue = cell.value;
+
+    if (typeof originalValue === 'string') {
+      // 일반 텍스트인 경우
+      const updatedValue = `작성일 :    ${year}  .  ${month}     .  ${day}      .`;
+      cell.value = updatedValue;
+    } else if (originalValue && typeof originalValue === 'object' && 'richText' in originalValue) {
+      // richText인 경우 - 원본 스타일 유지하면서 날짜만 교체
+      const richTextValue = originalValue as { richText: ExcelJS.RichText[] };
+      const newRichText: ExcelJS.RichText[] = [];
+
+      richTextValue.richText.forEach((part) => {
+        if (part.text) {
+          // 연도, 월, 일 패턴을 찾아서 교체
+          let updatedText = part.text
+            .replace(/(\d{4}|\s{4})(?=\s*\.)/g, String(year))  // 연도 부분
+            .replace(/(\d{1,2}|\s{1,2})(?=\s+\.)/g, (match, offset) => {
+              // 첫 번째 숫자는 월, 두 번째는 일
+              if (part.text!.indexOf(match) < part.text!.lastIndexOf('.')) {
+                return String(month);
+              }
+              return String(day);
+            });
+
+          // 더 간단한 방법: 전체 텍스트를 새로 구성
+          if (part.text.includes('작성일')) {
+            updatedText = `작성일 :    ${year}  .  ${month}     .  ${day}      .`;
+          }
+
+          newRichText.push({
+            ...part,
+            text: updatedText
+          });
+        } else {
+          newRichText.push(part);
+        }
+      });
+
+      cell.value = { richText: newRichText };
+    } else {
+      // 원본 값이 없는 경우 새로 생성
+      cell.value = `작성일 :    ${year}  .  ${month}     .  ${day}      .`;
+    }
   }
 
   /**
