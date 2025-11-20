@@ -574,7 +574,7 @@ export class ExcelGeneratorService {
 
     if (typeof originalValue === 'string') {
       // 일반 텍스트인 경우
-      const updatedValue = `작성일 :    ${year}  .  ${month}     .  ${day}      .`;
+      const updatedValue = `작성일 :    ${year}  .  ${month}     .        ${day}      .`;
       cell.value = updatedValue;
     } else if (originalValue && typeof originalValue === 'object' && 'richText' in originalValue) {
       // richText인 경우 - 원본 스타일 유지하면서 날짜만 교체
@@ -596,7 +596,7 @@ export class ExcelGeneratorService {
 
           // 더 간단한 방법: 전체 텍스트를 새로 구성
           if (part.text.includes('작성일')) {
-            updatedText = `작성일 :    ${year}  .  ${month}     .  ${day}      .`;
+            updatedText = `작성일 :    ${year}  .  ${month}     .        ${day}      .`;
           }
 
           newRichText.push({
@@ -611,7 +611,7 @@ export class ExcelGeneratorService {
       cell.value = { richText: newRichText };
     } else {
       // 원본 값이 없는 경우 새로 생성
-      cell.value = `작성일 :    ${year}  .  ${month}     .  ${day}      .`;
+      cell.value = `작성일 :    ${year}  .  ${month}     .        ${day}      .`;
     }
   }
 
