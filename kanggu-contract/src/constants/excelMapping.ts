@@ -25,6 +25,7 @@ export const EXCEL_CELL_MAPPING = {
     dailyWage: 'G18',                // 일당
     startDate: 'B8',                 // 계약 시작일
     endDate: 'D8',                   // 계약 종료일
+    writtenDate: 'A46',              // 작성일
   },
 };
 

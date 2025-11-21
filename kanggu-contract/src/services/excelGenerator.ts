@@ -507,6 +507,9 @@ export class ExcelGeneratorService {
       // richText 형식으로 날짜 설정 (원본 스타일 유지)
       this.setDateWithStyle(worksheet, contractInfo.startDate, this.formatDate(startDate) + ' ~');
       this.setDateWithStyle(worksheet, contractInfo.endDate, `${this.formatDate(endDate)} (${monthsDiff}개월)`);
+
+      // A46 작성일 설정 (계약 시작일 사용)
+      this.setWrittenDate(worksheet, contractInfo.writtenDate, startDate);
     }
   }
 
@@ -550,6 +553,73 @@ export class ExcelGeneratorService {
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     return `${year}. ${month}. ${day}.`;
+  }
+
+  /**
+   * 숫자를 지정된 너비 내에서 중앙 정렬
+   */
+  private centerPad(num: number, totalWidth: number): string {
+    const numStr = String(num);
+    const numWidth = numStr.length;
+    const totalPadding = totalWidth - numWidth;
+    const leftPadding = Math.floor(totalPadding / 2);
+    const rightPadding = totalPadding - leftPadding;
+
+    return ' '.repeat(leftPadding) + numStr + ' '.repeat(rightPadding);
+  }
+
+  /**
+   * A46 작성일 설정
+   * 템플릿의 "작성일 :    2025  .  11     .        ." 형식에 날짜 기입
+   */
+  private setWrittenDate(
+    worksheet: ExcelJS.Worksheet,
+    cellAddress: string,
+    date: Date
+  ): void {
+    const cell = worksheet.getCell(cellAddress);
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+
+    // 월과 일을 중앙 정렬 (점 사이 공간: 월 7칸, 일 8칸)
+    const monthPadded = this.centerPad(month, 7);
+    const dayPadded = this.centerPad(day, 8);
+
+    // 원본 셀 값 읽기
+    const originalValue = cell.value;
+
+    if (typeof originalValue === 'string') {
+      // 일반 텍스트인 경우
+      const updatedValue = `작성일 :    ${year}  .${monthPadded}.${dayPadded}.`;
+      cell.value = updatedValue;
+    } else if (originalValue && typeof originalValue === 'object' && 'richText' in originalValue) {
+      // richText인 경우 - 원본 스타일 유지하면서 날짜만 교체
+      const richTextValue = originalValue as { richText: ExcelJS.RichText[] };
+      const newRichText: ExcelJS.RichText[] = [];
+
+      richTextValue.richText.forEach((part) => {
+        if (part.text) {
+          // 더 간단한 방법: 전체 텍스트를 새로 구성
+          let updatedText = part.text;
+          if (part.text.includes('작성일')) {
+            updatedText = `작성일 :    ${year}  .${monthPadded}.${dayPadded}.`;
+          }
+
+          newRichText.push({
+            ...part,
+            text: updatedText
+          });
+        } else {
+          newRichText.push(part);
+        }
+      });
+
+      cell.value = { richText: newRichText };
+    } else {
+      // 원본 값이 없는 경우 새로 생성
+      cell.value = `작성일 :    ${year}  .${monthPadded}.${dayPadded}.`;
+    }
   }
 
   /**
