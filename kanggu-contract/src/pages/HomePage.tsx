@@ -2,7 +2,6 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '../components/common/Button';
 import { Card } from '../components/common/Card';
-import { PatchNotesSection } from '../components/common/PatchNotesSection';
 
 export const HomePage: React.FC = () => {
   return (
@@ -38,8 +37,6 @@ export const HomePage: React.FC = () => {
           </Link>
         </Card>
       </div>
-
-      <PatchNotesSection />
     </div>
   );
 };

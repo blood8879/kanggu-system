@@ -11,12 +11,21 @@ const categoryLabels: Record<PatchNoteCategory | 'all', string> = {
   general: '일반',
 };
 
-export const PatchNotesSection: React.FC = () => {
-  const [selectedCategory, setSelectedCategory] =
-    useState<PatchNoteCategory | 'all'>('all');
+interface PatchNotesSectionProps {
+  filterByCategory?: PatchNoteCategory;
+  showCategoryFilter?: boolean;
+}
 
-  const filteredNotes =
-    selectedCategory === 'all'
+export const PatchNotesSection: React.FC<PatchNotesSectionProps> = ({
+  filterByCategory,
+  showCategoryFilter = true,
+}) => {
+  const [selectedCategory, setSelectedCategory] =
+    useState<PatchNoteCategory | 'all'>(filterByCategory || 'all');
+
+  const filteredNotes = filterByCategory
+    ? patchNotes.filter((note) => note.category === filterByCategory)
+    : selectedCategory === 'all'
       ? patchNotes
       : patchNotes.filter((note) => note.category === selectedCategory);
 
@@ -26,23 +35,25 @@ export const PatchNotesSection: React.FC = () => {
         <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-0">
           패치 노트
         </h2>
-        <div className="flex gap-2 overflow-x-auto">
-          {(Object.keys(categoryLabels) as Array<PatchNoteCategory | 'all'>).map(
-            (category) => (
-              <button
-                key={category}
-                onClick={() => setSelectedCategory(category)}
-                className={`px-3 py-1 rounded text-sm font-medium whitespace-nowrap transition-colors ${
-                  selectedCategory === category
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                {categoryLabels[category]}
-              </button>
-            )
-          )}
-        </div>
+        {showCategoryFilter && !filterByCategory && (
+          <div className="flex gap-2 overflow-x-auto">
+            {(Object.keys(categoryLabels) as Array<PatchNoteCategory | 'all'>).map(
+              (category) => (
+                <button
+                  key={category}
+                  onClick={() => setSelectedCategory(category)}
+                  className={`px-3 py-1 rounded text-sm font-medium whitespace-nowrap transition-colors ${
+                    selectedCategory === category
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {categoryLabels[category]}
+                </button>
+              )
+            )}
+          </div>
+        )}
       </div>
 
       <div className="space-y-4 max-h-[500px] overflow-y-auto">

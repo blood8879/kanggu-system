@@ -3,6 +3,7 @@ import { workerStorage } from '../services/workerStorage';
 import type { Worker } from '../services/db';
 import { Card } from '../components/common/Card';
 import { Button } from '../components/common/Button';
+import { PatchNotesSection } from '../components/common/PatchNotesSection';
 
 export const WorkersPage: React.FC = () => {
   const [workers, setWorkers] = useState<Worker[]>([]);
@@ -32,8 +33,8 @@ export const WorkersPage: React.FC = () => {
   const currentWorkers = workers.slice(startIndex, endIndex);
 
   return (
-    <div className="max-w-6xl mx-auto">
-      <h1 className="text-2xl sm:text-3xl font-bold mb-6">근로자 관리</h1>
+    <div className="max-w-6xl mx-auto space-y-6">
+      <h1 className="text-2xl sm:text-3xl font-bold">근로자 관리</h1>
 
       <Card>
         <div className="overflow-x-auto">
@@ -101,6 +102,8 @@ export const WorkersPage: React.FC = () => {
           </div>
         )}
       </Card>
+
+      <PatchNotesSection filterByCategory="worker" showCategoryFilter={false} />
     </div>
   );
 };
