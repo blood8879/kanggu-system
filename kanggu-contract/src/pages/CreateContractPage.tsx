@@ -6,6 +6,7 @@ import { Card } from '../components/common/Card';
 import { Button } from '../components/common/Button';
 import { CompanyInfoSection } from '../components/contract/CompanyInfoSection';
 import { WorkersSection } from '../components/contract/WorkersSection';
+import { PatchNotesSection } from '../components/common/PatchNotesSection';
 import { excelGenerator } from '../services/excelGenerator';
 
 // Zod validation schema
@@ -128,8 +129,8 @@ export const CreateContractPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <h1 className="text-2xl sm:text-3xl font-bold mb-6">계약서 생성</h1>
+    <div className="max-w-4xl mx-auto space-y-6">
+      <h1 className="text-2xl sm:text-3xl font-bold">계약서 생성</h1>
 
       <FormProvider {...methods}>
         <form onSubmit={methods.handleSubmit(onSubmit, onError)} className="space-y-6">
@@ -214,6 +215,8 @@ export const CreateContractPage: React.FC = () => {
           </Card>
         </div>
       )}
+
+      <PatchNotesSection filterByCategory="contract" showCategoryFilter={false} />
     </div>
   );
 };
