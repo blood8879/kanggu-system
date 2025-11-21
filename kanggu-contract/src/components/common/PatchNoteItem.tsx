@@ -1,5 +1,5 @@
 import React from 'react';
-import { PatchNote } from '../../types/patchNotes';
+import type { PatchNote } from '../../types/patchNotes';
 
 interface PatchNoteItemProps {
   note: PatchNote;

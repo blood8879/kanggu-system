@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Card } from './Card';
 import { PatchNoteItem } from './PatchNoteItem';
 import { patchNotes } from '../../constants/patchNotesData';
-import { PatchNoteCategory } from '../../types/patchNotes';
+import type { PatchNoteCategory } from '../../types/patchNotes';
 
 const categoryLabels: Record<PatchNoteCategory | 'all', string> = {
   all: '전체',

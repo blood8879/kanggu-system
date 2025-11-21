@@ -1,4 +1,4 @@
-import { PatchNote } from '../types/patchNotes';
+import type { PatchNote } from '../types/patchNotes';
 
 export const patchNotes: PatchNote[] = [
   // 2025-11-20 업데이트
