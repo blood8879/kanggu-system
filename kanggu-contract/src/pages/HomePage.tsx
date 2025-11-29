@@ -5,17 +5,17 @@ import { Card } from '../components/common/Card';
 
 export const HomePage: React.FC = () => {
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl sm:text-3xl font-bold">
+    <div className="space-y-8 sm:space-y-12">
+      <h1 className="text-3xl sm:text-5xl font-bold text-white text-center animate-fade-in-up tracking-tight leading-tight">
         강구토건 근로계약서 자동화 시스템
       </h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-        <Card className="p-4 sm:p-6">
-          <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
+        <Card hover={true} className="animate-fade-in-up animate-delay-100">
+          <h2 className="text-2xl sm:text-3xl font-bold mb-4 text-gray-800">
             계약서 생성
           </h2>
-          <p className="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4">
+          <p className="text-base sm:text-lg text-gray-600 mb-6 leading-relaxed">
             새로운 근로계약서를 생성합니다.
           </p>
           <Link to="/create-contract">
@@ -23,11 +23,11 @@ export const HomePage: React.FC = () => {
           </Link>
         </Card>
 
-        <Card className="p-4 sm:p-6">
-          <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">
+        <Card hover={true} className="animate-fade-in-up animate-delay-200">
+          <h2 className="text-2xl sm:text-3xl font-bold mb-4 text-gray-800">
             근로자 관리
           </h2>
-          <p className="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4">
+          <p className="text-base sm:text-lg text-gray-600 mb-6 leading-relaxed">
             등록된 근로자 정보를 관리합니다.
           </p>
           <Link to="/workers">
