@@ -12,18 +12,39 @@ export const Button: React.FC<ButtonProps> = ({
   className = '',
   ...props
 }) => {
-  const baseClasses = 'rounded font-medium transition-colors';
+  const baseClasses = `
+    font-semibold
+    rounded-2xl
+    transition-all duration-300
+    transform
+    hover:scale-105
+    active:scale-95
+    shadow-lg
+    hover:shadow-2xl
+  `;
 
   const variantClasses = {
-    primary: 'bg-primary text-white hover:bg-blue-700',
-    secondary: 'bg-secondary text-white hover:bg-gray-600',
-    danger: 'bg-red-500 text-white hover:bg-red-600',
+    primary: `
+      bg-gradient-to-r from-blue-500 to-purple-600
+      text-white
+      hover:from-blue-600 hover:to-purple-700
+    `,
+    secondary: `
+      bg-gradient-to-r from-gray-600 to-gray-700
+      text-white
+      hover:from-gray-700 hover:to-gray-800
+    `,
+    danger: `
+      bg-gradient-to-r from-red-500 to-pink-600
+      text-white
+      hover:from-red-600 hover:to-pink-700
+    `,
   };
 
   const sizeClasses = {
-    sm: 'px-2 py-1 text-sm',
-    md: 'px-2 py-2',
-    lg: 'px-2 py-2 text-lg',
+    sm: 'px-4 py-2 text-sm',
+    md: 'px-6 py-3 text-base',
+    lg: 'px-8 py-4 text-lg',
   };
 
   return (
