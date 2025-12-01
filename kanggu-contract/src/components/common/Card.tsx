@@ -10,17 +10,21 @@ export const Card: React.FC<CardProps> = ({ children, className = '', hover = fa
   return (
     <div
       className={`
-        bg-white/95 backdrop-blur-sm
-        border border-white/40
-        rounded-3xl
-        shadow-[0_8px_30px_rgba(0,0,0,0.12)]
-        px-8 py-8
-        transition-all duration-500 ease-out
-        ${hover ? 'hover:shadow-[0_20px_60px_rgba(0,0,0,0.2)] hover:scale-[1.02] hover:-translate-y-1' : ''}
+        relative overflow-hidden
+        backdrop-blur-xl bg-[var(--color-luxury-card-bg)]
+        border border-[var(--color-luxury-border)]
+        rounded-2xl shadow-[var(--shadow-card)]
+        p-6 sm:p-8
+        transition-all duration-500
+        ${hover ? 'hover:border-[var(--color-luxury-gold)] hover:shadow-[var(--shadow-gold-glow)] hover:scale-[1.02]' : ''}
         ${className}
       `}
     >
-      {children}
+      {/* Glassmorphic overlay effect */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[rgba(212,175,55,0.05)] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
+
+      {/* Content */}
+      <div className="relative z-10">{children}</div>
     </div>
   );
 };

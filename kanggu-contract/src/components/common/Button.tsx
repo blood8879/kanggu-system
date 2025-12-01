@@ -13,31 +13,41 @@ export const Button: React.FC<ButtonProps> = ({
   ...props
 }) => {
   const baseClasses = `
-    font-semibold
-    rounded-2xl
+    relative overflow-hidden
+    font-[family-name:var(--font-family-sans)] font-semibold
+    rounded-xl
     transition-all duration-300
-    transform
-    hover:scale-105
-    active:scale-95
-    shadow-lg
-    hover:shadow-2xl
+    disabled:opacity-50 disabled:cursor-not-allowed
+    focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-black
   `;
 
   const variantClasses = {
     primary: `
-      bg-gradient-to-r from-blue-500 to-purple-600
-      text-white
-      hover:from-blue-600 hover:to-purple-700
+      bg-gradient-to-r from-[var(--color-luxury-gold)] to-[var(--color-luxury-gold-light)]
+      text-black
+      shadow-[var(--shadow-gold-glow)]
+      hover:shadow-[0_0_30px_rgba(212,175,55,0.5)]
+      hover:scale-105
+      focus:ring-[var(--color-luxury-gold)]
+      active:scale-95
     `,
     secondary: `
-      bg-gradient-to-r from-gray-600 to-gray-700
-      text-white
-      hover:from-gray-700 hover:to-gray-800
+      bg-gradient-to-r from-[var(--color-luxury-silver)] to-[var(--color-luxury-silver-light)]
+      text-black
+      shadow-lg
+      hover:shadow-xl
+      hover:scale-105
+      focus:ring-[var(--color-luxury-silver)]
+      active:scale-95
     `,
     danger: `
-      bg-gradient-to-r from-red-500 to-pink-600
+      bg-gradient-to-r from-red-600 to-red-500
       text-white
-      hover:from-red-600 hover:to-pink-700
+      shadow-lg shadow-red-500/30
+      hover:shadow-xl hover:shadow-red-500/50
+      hover:scale-105
+      focus:ring-red-500
+      active:scale-95
     `,
   };
 
@@ -52,7 +62,11 @@ export const Button: React.FC<ButtonProps> = ({
       className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
       {...props}
     >
-      {children}
+      {/* Shimmer effect on hover */}
+      <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></span>
+
+      {/* Content */}
+      <span className="relative z-10">{children}</span>
     </button>
   );
 };
