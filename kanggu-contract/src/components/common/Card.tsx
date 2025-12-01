@@ -8,9 +8,24 @@ interface CardProps {
 export const Card: React.FC<CardProps> = ({ children, className = '' }) => {
   return (
     <div
-      className={`bg-white border border-gray-200 rounded-lg shadow-sm px-4 py-4 ${className}`}
+      className={`
+        relative overflow-hidden
+        backdrop-blur-xl bg-[var(--color-luxury-card-bg)]
+        border border-[var(--color-luxury-border)]
+        rounded-2xl shadow-[var(--shadow-card)]
+        p-6 sm:p-8
+        transition-all duration-500
+        hover:border-[var(--color-luxury-gold)]
+        hover:shadow-[var(--shadow-gold-glow)]
+        hover:scale-[1.02]
+        ${className}
+      `}
     >
-      {children}
+      {/* Glassmorphic overlay effect */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[rgba(212,175,55,0.05)] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
+
+      {/* Content */}
+      <div className="relative z-10">{children}</div>
     </div>
   );
 };

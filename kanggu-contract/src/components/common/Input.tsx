@@ -18,13 +18,32 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className="flex flex-col gap-2">
         {label && (
-          <label className="text-sm font-medium text-gray-700">{label}</label>
+          <label className="text-sm font-medium text-[var(--color-luxury-silver-light)] font-[family-name:var(--font-family-sans)]">
+            {label}
+          </label>
         )}
         <input
           ref={ref}
           type={type}
           value={formattedValue}
-          className={`px-2 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary ${className}`}
+          className={`
+            px-4 py-3
+            bg-[rgba(20,20,20,0.6)] backdrop-blur-sm
+            border border-[var(--color-luxury-border)]
+            rounded-xl
+            text-[var(--color-luxury-silver-light)]
+            font-[family-name:var(--font-family-sans)]
+            placeholder:text-[var(--color-luxury-silver)]/50
+            transition-all duration-300
+            focus:outline-none
+            focus:border-[var(--color-luxury-gold)]
+            focus:ring-2
+            focus:ring-[var(--color-luxury-gold)]/30
+            focus:shadow-[0_0_20px_rgba(212,175,55,0.2)]
+            hover:border-[var(--color-luxury-silver)]
+            disabled:opacity-50 disabled:cursor-not-allowed
+            ${className}
+          `}
           {...props}
         />
       </div>
