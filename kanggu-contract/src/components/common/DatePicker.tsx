@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { DayPicker } from 'react-day-picker';
 import type { DateRange } from 'react-day-picker';
 import { format } from 'date-fns';
@@ -32,14 +33,36 @@ export const DatePicker = React.forwardRef<HTMLDivElement, DatePickerProps>(
   ) => {
     const [isOpen, setIsOpen] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
+    const buttonRef = useRef<HTMLButtonElement>(null);
+    const calendarRef = useRef<HTMLDivElement>(null);
+    const [position, setPosition] = useState({ top: 0, left: 0 });
 
     // ref forwarding 처리
     React.useImperativeHandle(ref, () => containerRef.current as HTMLDivElement);
 
+    // 달력 위치 계산
+    useEffect(() => {
+      if (isOpen && buttonRef.current) {
+        const rect = buttonRef.current.getBoundingClientRect();
+        const scrollY = window.scrollY || window.pageYOffset;
+        const scrollX = window.scrollX || window.pageXOffset;
+
+        setPosition({
+          top: rect.bottom + scrollY + 8,
+          left: rect.left + scrollX,
+        });
+      }
+    }, [isOpen]);
+
     // 외부 클릭 감지
     useEffect(() => {
       const handleClickOutside = (event: MouseEvent) => {
-        if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        if (
+          containerRef.current &&
+          !containerRef.current.contains(event.target as Node) &&
+          calendarRef.current &&
+          !calendarRef.current.contains(event.target as Node)
+        ) {
           setIsOpen(false);
         }
       };
@@ -83,26 +106,19 @@ export const DatePicker = React.forwardRef<HTMLDivElement, DatePickerProps>(
       return placeholder;
     };
 
-    return (
-      <div ref={containerRef} className={`relative ${className}`}>
-        {label && (
-          <label className="block text-sm font-medium text-[var(--color-luxury-silver-light)] mb-2 font-[family-name:var(--font-family-sans)]">
-            {label}
-          </label>
-        )}
+    const renderCalendar = () => {
+      if (!isOpen) return null;
 
-        <button
-          type="button"
-          onClick={() => setIsOpen(!isOpen)}
-          className="w-full px-4 py-3 bg-[rgba(20,20,20,0.6)] backdrop-blur-sm border border-[var(--color-luxury-border)] rounded-xl text-[var(--color-luxury-silver-light)] font-[family-name:var(--font-family-sans)] text-left transition-all duration-300 focus:outline-none focus:border-[var(--color-luxury-gold)] focus:ring-2 focus:ring-[var(--color-luxury-gold)]/30 focus:shadow-[0_0_20px_rgba(212,175,55,0.2)] hover:border-[var(--color-luxury-silver)]"
+      const calendarContent = (
+        <div
+          ref={calendarRef}
+          className="fixed z-[9999] bg-[rgba(15,15,15,0.98)] backdrop-blur-xl border border-[var(--color-luxury-border)] rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.5)] p-4"
+          style={{
+            top: `${position.top}px`,
+            left: `${position.left}px`,
+            minWidth: buttonRef.current?.offsetWidth || 'auto',
+          }}
         >
-          <span className={!value && !rangeValue?.from ? 'text-[var(--color-luxury-silver)]/50' : ''}>
-            {displayValue()}
-          </span>
-        </button>
-
-        {isOpen && (
-          <div className="absolute z-50 mt-2 bg-[rgba(15,15,15,0.98)] backdrop-blur-xl border border-[var(--color-luxury-border)] rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.5)] p-4 overflow-hidden">
             <style>{`
               .rdp {
                 --rdp-accent-color: var(--color-luxury-gold);
@@ -243,25 +259,49 @@ export const DatePicker = React.forwardRef<HTMLDivElement, DatePickerProps>(
               }
             `}</style>
 
-            {mode === 'single' ? (
-              <DayPicker
-                mode="single"
-                selected={value || undefined}
-                onSelect={handleDateSelect}
-                locale={ko}
-                showOutsideDays
-              />
-            ) : (
-              <DayPicker
-                mode="range"
-                selected={rangeValue}
-                onSelect={handleRangeSelect}
-                locale={ko}
-                showOutsideDays
-              />
-            )}
-          </div>
+          {mode === 'single' ? (
+            <DayPicker
+              mode="single"
+              selected={value || undefined}
+              onSelect={handleDateSelect}
+              locale={ko}
+              showOutsideDays
+            />
+          ) : (
+            <DayPicker
+              mode="range"
+              selected={rangeValue}
+              onSelect={handleRangeSelect}
+              locale={ko}
+              showOutsideDays
+            />
+          )}
+        </div>
+      );
+
+      return createPortal(calendarContent, document.body);
+    };
+
+    return (
+      <div ref={containerRef} className={className}>
+        {label && (
+          <label className="block text-sm font-medium text-[var(--color-luxury-silver-light)] mb-2 font-[family-name:var(--font-family-sans)]">
+            {label}
+          </label>
         )}
+
+        <button
+          ref={buttonRef}
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          className="w-full px-4 py-3 bg-[rgba(20,20,20,0.6)] backdrop-blur-sm border border-[var(--color-luxury-border)] rounded-xl text-[var(--color-luxury-silver-light)] font-[family-name:var(--font-family-sans)] text-left transition-all duration-300 focus:outline-none focus:border-[var(--color-luxury-gold)] focus:ring-2 focus:ring-[var(--color-luxury-gold)]/30 focus:shadow-[0_0_20px_rgba(212,175,55,0.2)] hover:border-[var(--color-luxury-silver)]"
+        >
+          <span className={!value && !rangeValue?.from ? 'text-[var(--color-luxury-silver)]/50' : ''}>
+            {displayValue()}
+          </span>
+        </button>
+
+        {renderCalendar()}
       </div>
     );
   }
