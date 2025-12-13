@@ -1,11 +1,13 @@
 import React from 'react';
+import { DatePicker } from './DatePicker';
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
+  onDateChange?: (date: Date | null) => void;
 }
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ label, className = '', type, value, ...props }, ref) => {
+  ({ label, className = '', type, value, onDateChange, onChange, ...props }, ref) => {
     const internalRef = React.useRef<HTMLInputElement>(null);
 
     // ref forwarding 처리
@@ -27,6 +29,55 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
       return () => input.removeEventListener('wheel', handleWheel);
     }, [type]);
 
+    // type="date"인 경우 DatePicker 컴포넌트 사용
+    if (type === 'date') {
+      const dateValue = value instanceof Date ? value : null;
+
+      const handleDateChange = (date: Date | null) => {
+        // react-hook-form의 onChange 호출
+        if (onChange && internalRef.current) {
+          // Date 객체를 포함한 합성 이벤트 생성
+          const syntheticEvent = {
+            target: internalRef.current,
+            currentTarget: internalRef.current,
+            type: 'change',
+          } as React.ChangeEvent<HTMLInputElement>;
+
+          // target.value에 Date 객체 설정 (valueAsDate를 위해)
+          Object.defineProperty(syntheticEvent.target, 'value', {
+            get: () => date,
+            configurable: true,
+          });
+
+          onChange(syntheticEvent);
+        }
+
+        if (onDateChange) {
+          onDateChange(date);
+        }
+      };
+
+      return (
+        <div className="flex flex-col gap-2">
+          <DatePicker
+            label={label}
+            value={dateValue}
+            onChange={handleDateChange}
+            placeholder={props.placeholder}
+            className={className}
+          />
+          {/* react-hook-form과의 통합을 위한 hidden input */}
+          <input
+            ref={internalRef}
+            type="hidden"
+            value={dateValue?.toISOString() || ''}
+            onChange={onChange}
+            {...props}
+          />
+        </div>
+      );
+    }
+
     // type="date"이고 value가 Date 객체인 경우 yyyy-MM-dd 형식으로 변환
     let formattedValue = value;
     if (type === 'date' && value instanceof Date && !isNaN(value.getTime())) {
@@ -47,6 +98,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           ref={internalRef}
           type={type}
           value={formattedValue}
+          onChange={onChange}
           className={`
             px-4 py-3
             bg-[rgba(20,20,20,0.6)] backdrop-blur-sm
