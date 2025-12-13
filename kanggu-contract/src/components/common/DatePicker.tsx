@@ -108,7 +108,7 @@ export const DatePicker = React.forwardRef<HTMLDivElement, DatePickerProps>(
         {isOpen && (
           <div
             ref={calendarRef}
-            className="absolute left-0 right-0 z-[9999] mt-2 bg-[rgba(15,15,15,0.98)] backdrop-blur-xl border border-[var(--color-luxury-border)] rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.5)] p-4"
+            className="absolute left-0 right-0 bottom-full z-[9999] mb-2 bg-[rgba(15,15,15,0.98)] backdrop-blur-xl border border-[var(--color-luxury-border)] rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.5)] p-4"
           >
             <style>{`
               .rdp {
