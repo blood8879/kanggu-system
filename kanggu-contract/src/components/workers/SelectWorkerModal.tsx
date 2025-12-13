@@ -75,7 +75,7 @@ const SelectWorkerModal: React.FC<SelectWorkerModalProps> = ({ isOpen, onClose, 
                 {filteredWorkers.map((worker) => (
                   <tr
                     key={worker.id}
-                    className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                    className="border-b border-gray-100 hover:bg-gray-50 hover:text-gray-900 transition-colors"
                   >
                     <td className="px-2 py-2 text-sm">{worker.name}</td>
                     <td className="px-2 py-2 text-sm">{worker.residentNumber}</td>
