@@ -1,14 +1,33 @@
+import { useState } from 'react';
 import { useFormContext, useFieldArray } from 'react-hook-form';
 import { Button } from '../common/Button';
 import { Input } from '../common/Input';
 import type { ContractFormData } from '../../types/contract';
+import SelectWorkerModal from '../workers/SelectWorkerModal';
+import type { Worker } from '../../services/db';
 
 export const WorkersSection = () => {
-  const { register, control } = useFormContext<ContractFormData>();
+  const { register, control, setValue } = useFormContext<ContractFormData>();
   const { fields, append, remove } = useFieldArray({
     control,
     name: 'workers',
   });
+  const [isSelectModalOpen, setIsSelectModalOpen] = useState(false);
+  const [selectedWorkerIndex, setSelectedWorkerIndex] = useState<number | null>(null);
+
+  const handleLoadWorker = (index: number) => {
+    setSelectedWorkerIndex(index);
+    setIsSelectModalOpen(true);
+  };
+
+  const handleWorkerSelect = (worker: Worker) => {
+    if (selectedWorkerIndex !== null) {
+      setValue(`workers.${selectedWorkerIndex}.name`, worker.name);
+      setValue(`workers.${selectedWorkerIndex}.residentNumber`, worker.residentNumber);
+      setValue(`workers.${selectedWorkerIndex}.address`, worker.address);
+      setValue(`workers.${selectedWorkerIndex}.phone`, worker.phone);
+    }
+  };
 
   return (
     <section className="space-y-4">
@@ -27,16 +46,26 @@ export const WorkersSection = () => {
         <div key={field.id} className="border border-gray-300 rounded-lg p-4 space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="font-semibold">근로자 {index + 1}</h3>
-            {fields.length > 1 && (
+            <div className="flex gap-2">
               <Button
                 type="button"
-                onClick={() => remove(index)}
+                onClick={() => handleLoadWorker(index)}
                 variant="secondary"
                 size="sm"
               >
-                삭제
+                불러오기
               </Button>
-            )}
+              {fields.length > 1 && (
+                <Button
+                  type="button"
+                  onClick={() => remove(index)}
+                  variant="secondary"
+                  size="sm"
+                >
+                  삭제
+                </Button>
+              )}
+            </div>
           </div>
 
           {/* 근로자 기본 정보 */}
@@ -96,6 +125,12 @@ export const WorkersSection = () => {
           </div>
         </div>
       ))}
+
+      <SelectWorkerModal
+        isOpen={isSelectModalOpen}
+        onClose={() => setIsSelectModalOpen(false)}
+        onSelect={handleWorkerSelect}
+      />
     </section>
   );
 };
