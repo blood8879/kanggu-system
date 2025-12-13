@@ -35,7 +35,7 @@ export const DatePicker = React.forwardRef<HTMLDivElement, DatePickerProps>(
     const containerRef = useRef<HTMLDivElement>(null);
     const buttonRef = useRef<HTMLButtonElement>(null);
     const calendarRef = useRef<HTMLDivElement>(null);
-    const [position, setPosition] = useState({ top: 0, left: 0 });
+    const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
 
     // ref forwarding 처리
     React.useImperativeHandle(ref, () => containerRef.current as HTMLDivElement);
@@ -43,32 +43,55 @@ export const DatePicker = React.forwardRef<HTMLDivElement, DatePickerProps>(
     // 달력 위치 계산
     useEffect(() => {
       if (isOpen && buttonRef.current) {
-        const rect = buttonRef.current.getBoundingClientRect();
-        const scrollY = window.scrollY || window.pageYOffset;
-        const scrollX = window.scrollX || window.pageXOffset;
+        const updatePosition = () => {
+          if (!buttonRef.current) return;
 
-        setPosition({
-          top: rect.bottom + scrollY + 8,
-          left: rect.left + scrollX,
-        });
+          const rect = buttonRef.current.getBoundingClientRect();
+          const scrollY = window.scrollY || window.pageYOffset;
+          const scrollX = window.scrollX || window.pageXOffset;
+
+          setPosition({
+            top: rect.bottom + scrollY + 8,
+            left: rect.left + scrollX,
+          });
+        };
+
+        updatePosition();
+
+        // 스크롤 시에도 위치 업데이트
+        window.addEventListener('scroll', updatePosition, true);
+        window.addEventListener('resize', updatePosition);
+
+        return () => {
+          window.removeEventListener('scroll', updatePosition, true);
+          window.removeEventListener('resize', updatePosition);
+        };
+      } else {
+        setPosition(null);
       }
     }, [isOpen]);
 
     // 외부 클릭 감지
     useEffect(() => {
       const handleClickOutside = (event: MouseEvent) => {
-        if (
-          containerRef.current &&
-          !containerRef.current.contains(event.target as Node) &&
-          calendarRef.current &&
-          !calendarRef.current.contains(event.target as Node)
-        ) {
+        const target = event.target as Node;
+
+        // 버튼 클릭은 무시 (토글을 위해)
+        if (buttonRef.current?.contains(target)) {
+          return;
+        }
+
+        // 달력 외부 클릭 시 닫기
+        if (calendarRef.current && !calendarRef.current.contains(target)) {
           setIsOpen(false);
         }
       };
 
       if (isOpen) {
-        document.addEventListener('mousedown', handleClickOutside);
+        // 약간의 지연을 두고 이벤트 리스너 등록 (현재 클릭 이벤트와 분리)
+        setTimeout(() => {
+          document.addEventListener('mousedown', handleClickOutside);
+        }, 0);
       }
 
       return () => {
@@ -107,7 +130,7 @@ export const DatePicker = React.forwardRef<HTMLDivElement, DatePickerProps>(
     };
 
     const renderCalendar = () => {
-      if (!isOpen) return null;
+      if (!isOpen || !position) return null;
 
       const calendarContent = (
         <div
