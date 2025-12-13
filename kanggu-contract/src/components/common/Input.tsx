@@ -6,6 +6,27 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ({ label, className = '', type, value, ...props }, ref) => {
+    const internalRef = React.useRef<HTMLInputElement>(null);
+
+    // ref forwarding 처리
+    React.useImperativeHandle(ref, () => internalRef.current as HTMLInputElement);
+
+    // type="number"일 때 마우스 휠로 값이 변경되는 것을 방지
+    React.useEffect(() => {
+      const input = internalRef.current;
+      if (!input || type !== 'number') return;
+
+      const handleWheel = (e: WheelEvent) => {
+        // 포커스가 있을 때만 휠 이벤트 방지
+        if (document.activeElement === input) {
+          e.preventDefault();
+        }
+      };
+
+      input.addEventListener('wheel', handleWheel, { passive: false });
+      return () => input.removeEventListener('wheel', handleWheel);
+    }, [type]);
+
     // type="date"이고 value가 Date 객체인 경우 yyyy-MM-dd 형식으로 변환
     let formattedValue = value;
     if (type === 'date' && value instanceof Date && !isNaN(value.getTime())) {
@@ -23,7 +44,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           </label>
         )}
         <input
-          ref={ref}
+          ref={internalRef}
           type={type}
           value={formattedValue}
           className={`
