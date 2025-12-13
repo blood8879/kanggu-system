@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { useFormContext, useFieldArray } from 'react-hook-form';
+import { useFormContext, useFieldArray, Controller } from 'react-hook-form';
 import { Button } from '../common/Button';
 import { Input } from '../common/Input';
+import { DatePicker } from '../common/DatePicker';
 import type { ContractFormData } from '../../types/contract';
 import SelectWorkerModal from '../workers/SelectWorkerModal';
 import type { Worker } from '../../services/db';
@@ -107,12 +108,17 @@ export const WorkersSection = () => {
               {...register(`workers.${index}.jobType` as const)}
             />
 
-            <Input
-              label="계약 시작일 (선택)"
-              type="date"
-              {...register(`workers.${index}.contractStartDate` as const, {
-                valueAsDate: true,
-              })}
+            <Controller
+              control={control}
+              name={`workers.${index}.contractStartDate` as const}
+              render={({ field }) => (
+                <DatePicker
+                  label="계약 시작일 (선택)"
+                  value={field.value || null}
+                  onChange={(date) => field.onChange(date)}
+                  placeholder="날짜 선택"
+                />
+              )}
             />
 
             <Input
