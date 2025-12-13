@@ -34,19 +34,22 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
       const dateValue = value instanceof Date ? value : null;
 
       const handleDateChange = (date: Date | null) => {
-        // hidden input의 값을 업데이트하고 change 이벤트를 발생
-        if (internalRef.current) {
-          const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
-            window.HTMLInputElement.prototype,
-            'value'
-          )?.set;
+        // react-hook-form의 onChange 호출
+        if (onChange && internalRef.current) {
+          // Date 객체를 포함한 합성 이벤트 생성
+          const syntheticEvent = {
+            target: internalRef.current,
+            currentTarget: internalRef.current,
+            type: 'change',
+          } as React.ChangeEvent<HTMLInputElement>;
 
-          if (nativeInputValueSetter) {
-            nativeInputValueSetter.call(internalRef.current, date || '');
-          }
+          // target.value에 Date 객체 설정 (valueAsDate를 위해)
+          Object.defineProperty(syntheticEvent.target, 'value', {
+            get: () => date,
+            configurable: true,
+          });
 
-          const event = new Event('input', { bubbles: true });
-          internalRef.current.dispatchEvent(event);
+          onChange(syntheticEvent);
         }
 
         if (onDateChange) {
