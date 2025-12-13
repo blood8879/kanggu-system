@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import Modal from '../common/Modal';
-import Input from '../common/Input';
-import Button from '../common/Button';
+import { Modal } from '../common/Modal';
+import { Input } from '../common/Input';
+import { Button } from '../common/Button';
 import { workerStorage } from '../../services/workerStorage';
 
 interface AddWorkerModalProps {
@@ -55,8 +55,10 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({ isOpen, onClose, onSucc
             label="이름"
             placeholder="홍길동"
             {...register('name', { required: '이름을 입력해주세요' })}
-            error={errors.name?.message}
           />
+          {errors.name && (
+            <p className="text-red-500 text-sm mt-1">{errors.name.message}</p>
+          )}
         </div>
 
         <div>
@@ -70,8 +72,10 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({ isOpen, onClose, onSucc
                 message: '올바른 형식으로 입력해주세요 (예: 123456-1234567)',
               },
             })}
-            error={errors.residentNumber?.message}
           />
+          {errors.residentNumber && (
+            <p className="text-red-500 text-sm mt-1">{errors.residentNumber.message}</p>
+          )}
         </div>
 
         <div>
@@ -79,8 +83,10 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({ isOpen, onClose, onSucc
             label="주소"
             placeholder="서울시 강남구 테헤란로 123"
             {...register('address', { required: '주소를 입력해주세요' })}
-            error={errors.address?.message}
           />
+          {errors.address && (
+            <p className="text-red-500 text-sm mt-1">{errors.address.message}</p>
+          )}
         </div>
 
         <div>
@@ -94,8 +100,10 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({ isOpen, onClose, onSucc
                 message: '올바른 형식으로 입력해주세요 (예: 010-1234-5678)',
               },
             })}
-            error={errors.phone?.message}
           />
+          {errors.phone && (
+            <p className="text-red-500 text-sm mt-1">{errors.phone.message}</p>
+          )}
         </div>
 
         <div className="flex justify-end gap-2 pt-4">

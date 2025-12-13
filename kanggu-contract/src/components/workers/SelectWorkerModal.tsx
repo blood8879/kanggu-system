@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import Modal from '../common/Modal';
-import Button from '../common/Button';
-import Input from '../common/Input';
+import { Modal } from '../common/Modal';
+import { Button } from '../common/Button';
+import { Input } from '../common/Input';
 import { workerStorage } from '../../services/workerStorage';
 import type { Worker } from '../../services/db';
 
