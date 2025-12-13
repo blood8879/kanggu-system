@@ -63,7 +63,7 @@ const SelectWorkerModal: React.FC<SelectWorkerModalProps> = ({ isOpen, onClose, 
         ) : (
           <div className="max-h-96 overflow-y-auto">
             <table className="w-full">
-              <thead className="sticky top-0 z-10 bg-[rgba(20,20,20,1)] border-b border-gray-200">
+              <thead className="sticky top-0 z-20 bg-[rgba(20,20,20,1)] border-b border-gray-200">
                 <tr>
                   <th className="px-2 py-2 text-left text-sm">이름</th>
                   <th className="px-2 py-2 text-left text-sm">주민번호</th>
