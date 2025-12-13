@@ -4,10 +4,12 @@ import type { Worker } from '../services/db';
 import { Card } from '../components/common/Card';
 import { Button } from '../components/common/Button';
 import { PatchNotesSection } from '../components/common/PatchNotesSection';
+import AddWorkerModal from '../components/workers/AddWorkerModal';
 
 export const WorkersPage: React.FC = () => {
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const itemsPerPage = 10;
 
   useEffect(() => {
@@ -34,7 +36,12 @@ export const WorkersPage: React.FC = () => {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
-      <h1 className="text-2xl sm:text-3xl font-bold">근로자 관리</h1>
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl sm:text-3xl font-bold">근로자 관리</h1>
+        <Button onClick={() => setIsAddModalOpen(true)}>
+          근로자 추가
+        </Button>
+      </div>
 
       <Card>
         <div className="overflow-x-auto">
@@ -104,6 +111,12 @@ export const WorkersPage: React.FC = () => {
       </Card>
 
       <PatchNotesSection filterByCategory="worker" showCategoryFilter={false} />
+
+      <AddWorkerModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onSuccess={loadWorkers}
+      />
     </div>
   );
 };
