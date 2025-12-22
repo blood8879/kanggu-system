@@ -680,9 +680,9 @@ export class ExcelGeneratorService {
     worksheet.pageSetup.orientation = 'portrait';
     worksheet.pageSetup.paperSize = 9; // A4
 
-    // 여백 설정 (인치) - 파일철 보관을 위해 왼쪽 여백을 넓게 설정
+    // 여백 설정 (인치) - 파일철 보관을 위해 여백을 적절히 설정
     worksheet.pageSetup.margins = {
-      left: 1.0,    // 파일철 구멍을 위한 여백 (약 25mm)
+      left: 0.75,   // 왼쪽 여백 (약 19mm)
       right: 0.75,  // 오른쪽 여백 (약 19mm)
       top: 0.75,    // 위쪽 여백 (약 19mm)
       bottom: 0.75, // 아래쪽 여백 (약 19mm)
