@@ -5,10 +5,38 @@ import { EXCEL_CELL_MAPPING, MONTH_SHEET_NAMES } from '../constants/excelMapping
 export class ExcelGeneratorService {
   /**
    * 템플릿 로드
+   * @param year - 계약 연도 (연도별 템플릿이 있으면 사용, 없으면 기본 템플릿 사용)
    */
-  private async loadTemplate(): Promise<ExcelJS.Workbook> {
-    const response = await fetch('/templates/contact_form_after.xlsx');
-    const arrayBuffer = await response.arrayBuffer();
+  private async loadTemplate(year?: number): Promise<ExcelJS.Workbook> {
+    let arrayBuffer: ArrayBuffer;
+
+    // 연도가 지정된 경우, 해당 연도의 템플릿 시도
+    if (year) {
+      const yearTemplateFile = `/templates/contact_form_after_${year}.xlsx`;
+
+      try {
+        const response = await fetch(yearTemplateFile);
+
+        // 파일이 존재하면 사용
+        if (response.ok) {
+          arrayBuffer = await response.arrayBuffer();
+        } else {
+          // 파일이 없으면 기본 템플릿 사용
+          console.log(`${year}년 템플릿이 없어 기본 템플릿을 사용합니다.`);
+          const defaultResponse = await fetch('/templates/contact_form_after.xlsx');
+          arrayBuffer = await defaultResponse.arrayBuffer();
+        }
+      } catch {
+        // 에러 발생 시 기본 템플릿 사용
+        console.log(`${year}년 템플릿 로드 실패, 기본 템플릿을 사용합니다.`);
+        const defaultResponse = await fetch('/templates/contact_form_after.xlsx');
+        arrayBuffer = await defaultResponse.arrayBuffer();
+      }
+    } else {
+      // 연도가 지정되지 않은 경우 기본 템플릿 사용
+      const response = await fetch('/templates/contact_form_after.xlsx');
+      arrayBuffer = await response.arrayBuffer();
+    }
 
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(arrayBuffer);
@@ -629,13 +657,14 @@ export class ExcelGeneratorService {
     data: ContractFormData,
     worker: Worker
   ): Promise<ArrayBuffer> {
-    const workbook = await this.loadTemplate();
-
     // 근로자의 계약 시작일을 사용하여 월 결정 (없으면 현재 월 사용)
     const contractDate = worker.contractStartDate && worker.contractStartDate !== null
       ? new Date(worker.contractStartDate)
       : new Date();
+    const year = contractDate.getFullYear();
     const month = contractDate.getMonth() + 1;
+
+    const workbook = await this.loadTemplate(year);
     const worksheet = this.selectWorksheet(workbook, month);
 
     this.fillCompanyInfo(worksheet, data);
