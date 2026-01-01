@@ -6,8 +6,26 @@ export class ExcelGeneratorService {
   /**
    * 템플릿 로드
    */
-  private async loadTemplate(): Promise<ExcelJS.Workbook> {
-    const response = await fetch('/templates/contact_form_after.xlsx');
+  private async loadTemplate(worker?: Worker): Promise<ExcelJS.Workbook> {
+    let templatePath = '/templates/contact_form_after.xlsx';
+
+    // 근로자의 계약 시작일에서 연도 추출하여 연도별 템플릿 시도
+    if (worker?.contractStartDate) {
+      const year = new Date(worker.contractStartDate).getFullYear();
+      const yearTemplatePath = `/templates/contact_form_after_${year}.xlsx`;
+
+      // 연도별 템플릿 파일 존재 여부 확인
+      try {
+        const testResponse = await fetch(yearTemplatePath, { method: 'HEAD' });
+        if (testResponse.ok) {
+          templatePath = yearTemplatePath;
+        }
+      } catch {
+        // 파일이 없으면 기본 템플릿 사용
+      }
+    }
+
+    const response = await fetch(templatePath);
     const arrayBuffer = await response.arrayBuffer();
 
     const workbook = new ExcelJS.Workbook();
@@ -629,7 +647,7 @@ export class ExcelGeneratorService {
     data: ContractFormData,
     worker: Worker
   ): Promise<ArrayBuffer> {
-    const workbook = await this.loadTemplate();
+    const workbook = await this.loadTemplate(worker);
 
     // 근로자의 계약 시작일을 사용하여 월 결정 (없으면 현재 월 사용)
     const contractDate = worker.contractStartDate && worker.contractStartDate !== null
