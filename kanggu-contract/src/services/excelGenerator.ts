@@ -1,21 +1,46 @@
 import ExcelJS from 'exceljs';
 import type { ContractFormData, Worker } from '../types/contract';
-import { EXCEL_CELL_MAPPING, MONTH_SHEET_NAMES } from '../constants/excelMapping';
+import {
+  EXCEL_CELL_MAPPING,
+  MONTH_SHEET_NAMES,
+} from '../constants/excelMapping';
 
 export class ExcelGeneratorService {
   /**
    * 템플릿 로드
+   * @param year - 계약 시작일의 연도 (선택사항)
    */
-  private async loadTemplate(): Promise<ExcelJS.Workbook> {
-    const response = await fetch('/templates/contact_form_after.xlsx');
-    const arrayBuffer = await response.arrayBuffer();
+  private async loadTemplate(year?: number): Promise<ExcelJS.Workbook> {
+    const templatePath = '/templates/contact_form_after.xlsx'; // 기본 템플릿
 
+    if (year) {
+      const yearTemplatePath = `/templates/contact_form_after_${year}.xlsx`;
+      try {
+        // 연도별 템플릿 로드 시도
+        const response = await fetch(yearTemplatePath);
+        if (response.ok) {
+          const arrayBuffer = await response.arrayBuffer();
+          const workbook = new ExcelJS.Workbook();
+          await workbook.xlsx.load(arrayBuffer);
+          console.log(`연도별 템플릿 사용: ${yearTemplatePath}`);
+          return workbook;
+        }
+      } catch {
+        // 연도별 템플릿이 없으면 기본 템플릿 사용
+        console.log(
+          `템플릿 ${yearTemplatePath}을(를) 찾을 수 없습니다. 기본 템플릿을 사용합니다.`
+        );
+      }
+    }
+
+    // 기본 템플릿 로드
+    const response = await fetch(templatePath);
+    const arrayBuffer = await response.arrayBuffer();
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(arrayBuffer);
-
+    console.log(`기본 템플릿 사용: ${templatePath}`);
     return workbook;
   }
-
 
   /**
    * 시트 선택
@@ -50,7 +75,8 @@ export class ExcelGeneratorService {
 
     // 현장대리인: 이름이 있으면 "이름 (인)" 형식, 없으면 "(인)" 유지
     if (data.siteManager) {
-      worksheet.getCell(companyInfo.siteManager).value = `${data.siteManager}                          (인)`;
+      worksheet.getCell(companyInfo.siteManager).value =
+        `${data.siteManager}                          (인)`;
     }
     // siteManager가 없으면 템플릿의 "(인)"이 그대로 유지됨
   }
@@ -58,10 +84,7 @@ export class ExcelGeneratorService {
   /**
    * 근로자 정보 입력
    */
-  private fillWorkerInfo(
-    worksheet: ExcelJS.Worksheet,
-    worker: Worker
-  ): void {
+  private fillWorkerInfo(worksheet: ExcelJS.Worksheet, worker: Worker): void {
     const { workerInfo } = EXCEL_CELL_MAPPING;
 
     // 근로자 정보 입력 (G열에만 입력하면 됨) - #002060 색상으로 설정
@@ -72,16 +95,16 @@ export class ExcelGeneratorService {
         richText: [
           {
             font: { color: { argb: 'FF002060' } }, // #002060
-            text: worker.name
+            text: worker.name,
           },
           {
-            text: '                          ' // 우측 끝 배치를 위한 공백
+            text: '                          ', // 우측 끝 배치를 위한 공백
           },
           {
             font: { color: { argb: 'FF808080' } }, // 회색 #808080
-            text: '(서명)'
-          }
-        ]
+            text: '(서명)',
+          },
+        ],
       };
 
       // 추가 서명 필드들에 근로자명 입력 (원본 내용의 빈칸만 교체)
@@ -92,26 +115,61 @@ export class ExcelGeneratorService {
       cellE4.font = { ...cellE4.font, color: { argb: 'FF002060' } };
 
       // B19: "동의자" 뒤 빈칸을 근로자명으로 교체
-      this.fillWorkerNameInCell(worksheet, workerInfo.signatureB19, worker.name);
+      this.fillWorkerNameInCell(
+        worksheet,
+        workerInfo.signatureB19,
+        worker.name
+      );
 
       // B21: "동의자" 뒤 빈칸을 근로자명으로 교체 (마지막만)
-      this.fillWorkerNameInCell(worksheet, workerInfo.signatureB21, worker.name, 'last');
+      this.fillWorkerNameInCell(
+        worksheet,
+        workerInfo.signatureB21,
+        worker.name,
+        'last'
+      );
 
       // B25: "동의자 성명 :" 뒤 빈칸을 근로자명으로 교체 (마지막만)
-      this.fillWorkerNameInCell(worksheet, workerInfo.signatureB25, worker.name, 'last');
+      this.fillWorkerNameInCell(
+        worksheet,
+        workerInfo.signatureB25,
+        worker.name,
+        'last'
+      );
 
       // B36: "성명 :" 패턴 뒤의 모든 빈칸을 근로자명으로 교체 (특수 케이스)
-      this.fillWorkerNameInCell(worksheet, workerInfo.signatureB36, worker.name, 'name-fields');
+      this.fillWorkerNameInCell(
+        worksheet,
+        workerInfo.signatureB36,
+        worker.name,
+        'name-fields'
+      );
 
       // B44: "동의자 성명 :" 뒤 빈칸을 근로자명으로 교체
-      this.fillWorkerNameInCell(worksheet, workerInfo.signatureB44, worker.name);
+      this.fillWorkerNameInCell(
+        worksheet,
+        workerInfo.signatureB44,
+        worker.name
+      );
 
       // B45: 마지막 빈칸을 근로자명으로 교체
-      this.fillWorkerNameInCell(worksheet, workerInfo.signatureB45, worker.name);
+      this.fillWorkerNameInCell(
+        worksheet,
+        workerInfo.signatureB45,
+        worker.name
+      );
     }
 
-    this.setCellWithBlackText(worksheet, workerInfo.residentNumber, worker.residentNumber || '');
-    this.setCellWithBlackText(worksheet, workerInfo.address, worker.address || '');
+    this.setCellWithBlackText(
+      worksheet,
+      workerInfo.residentNumber,
+      worker.residentNumber || ''
+    );
+    this.setCellWithBlackText(
+      worksheet,
+      workerInfo.address,
+      worker.address || ''
+    );
     this.setCellWithBlackText(worksheet, workerInfo.phone, worker.phone || '');
 
     // 행 높이 설정
@@ -152,20 +210,20 @@ export class ExcelGeneratorService {
           if (match.index > lastIndex) {
             parts.push({
               font: originalFont,
-              text: originalValue.substring(lastIndex, match.index)
+              text: originalValue.substring(lastIndex, match.index),
             });
           }
 
           // "성명 :" 부분 (원본 색상)
           parts.push({
             font: originalFont,
-            text: match[1]
+            text: match[1],
           });
 
           // 근로자명 (#002060)
           parts.push({
             font: { ...originalFont, color: { argb: 'FF002060' } },
-            text: `            ${workerName}            `
+            text: `            ${workerName}            `,
           });
 
           lastIndex = nameFieldRegex.lastIndex;
@@ -175,7 +233,7 @@ export class ExcelGeneratorService {
         if (lastIndex < originalValue.length) {
           parts.push({
             font: originalFont,
-            text: originalValue.substring(lastIndex)
+            text: originalValue.substring(lastIndex),
           });
         }
       } else if (mode === 'last') {
@@ -188,14 +246,14 @@ export class ExcelGeneratorService {
           if (lastMatch.index && lastMatch.index > 0) {
             parts.push({
               font: originalFont,
-              text: originalValue.substring(0, lastMatch.index)
+              text: originalValue.substring(0, lastMatch.index),
             });
           }
 
           // 근로자명 (#002060)
           parts.push({
             font: { ...originalFont, color: { argb: 'FF002060' } },
-            text: `            ${workerName}            `
+            text: `            ${workerName}            `,
           });
 
           // 마지막 매치 이후 텍스트 (원본 색상)
@@ -203,7 +261,7 @@ export class ExcelGeneratorService {
           if (afterIndex < originalValue.length) {
             parts.push({
               font: originalFont,
-              text: originalValue.substring(afterIndex)
+              text: originalValue.substring(afterIndex),
             });
           }
         }
@@ -223,14 +281,14 @@ export class ExcelGeneratorService {
           if (match.index > lastIndex) {
             parts.push({
               font: originalFont,
-              text: originalValue.substring(lastIndex, match.index)
+              text: originalValue.substring(lastIndex, match.index),
             });
           }
 
           // 근로자명 (#002060)
           parts.push({
             font: { ...originalFont, color: { argb: 'FF002060' } },
-            text: `            ${workerName}            `
+            text: `            ${workerName}            `,
           });
 
           lastIndex = regex.lastIndex;
@@ -241,7 +299,7 @@ export class ExcelGeneratorService {
         if (lastIndex < originalValue.length) {
           parts.push({
             font: originalFont,
-            text: originalValue.substring(lastIndex)
+            text: originalValue.substring(lastIndex),
           });
         }
       }
@@ -250,7 +308,11 @@ export class ExcelGeneratorService {
       if (parts.length > 0) {
         cell.value = { richText: parts };
       }
-    } else if (originalValue && typeof originalValue === 'object' && 'richText' in originalValue) {
+    } else if (
+      originalValue &&
+      typeof originalValue === 'object' &&
+      'richText' in originalValue
+    ) {
       // richText 형식인 경우: 빈칸 부분을 찾아서 근로자명으로 교체
       const richTextValue = originalValue as { richText: ExcelJS.RichText[] };
 
@@ -259,14 +321,17 @@ export class ExcelGeneratorService {
         const newRichText: ExcelJS.RichText[] = [];
 
         // 먼저 모든 "성명 :" 패턴의 위치를 찾습니다
-        const nameFieldPositions: Array<{ partIndex: number; textIndex: number }> = [];
+        const nameFieldPositions: Array<{
+          partIndex: number;
+          textIndex: number;
+        }> = [];
         richTextValue.richText.forEach((part, partIndex) => {
           if (part.text && part.text.includes('성명')) {
             const matches = Array.from(part.text.matchAll(/성명\s*:/g));
-            matches.forEach(match => {
+            matches.forEach((match) => {
               nameFieldPositions.push({
                 partIndex,
-                textIndex: match.index! + match[0].length
+                textIndex: match.index! + match[0].length,
               });
             });
           }
@@ -275,7 +340,7 @@ export class ExcelGeneratorService {
         // "성명 :" 이후에 나오는 긴 공백들을 표시
         const blanksToFill = new Set<string>(); // "partIndex:matchIndex" 형식
 
-        nameFieldPositions.forEach(namePos => {
+        nameFieldPositions.forEach((namePos) => {
           let foundBlank = false;
 
           // 같은 part에서 "성명 :" 이후의 공백 찾기
@@ -292,7 +357,11 @@ export class ExcelGeneratorService {
 
           // 같은 part에서 못 찾았으면 다음 part들에서 찾기
           if (!foundBlank) {
-            for (let i = namePos.partIndex + 1; i < richTextValue.richText.length; i++) {
+            for (
+              let i = namePos.partIndex + 1;
+              i < richTextValue.richText.length;
+              i++
+            ) {
               const nextPart = richTextValue.richText[i];
               if (nextPart.text && nextPart.text.match(/\s{15,}/)) {
                 const match = nextPart.text.match(/\s{15,}/);
@@ -312,8 +381,8 @@ export class ExcelGeneratorService {
 
           // 이 part에 교체할 공백이 있는지 확인
           const blanksInThisPart = Array.from(blanksToFill)
-            .filter(key => key.startsWith(`${partIndex}:`))
-            .map(key => parseInt(key.split(':')[1]))
+            .filter((key) => key.startsWith(`${partIndex}:`))
+            .map((key) => parseInt(key.split(':')[1]))
             .sort((a, b) => a - b);
 
           if (blanksInThisPart.length === 0) {
@@ -322,8 +391,10 @@ export class ExcelGeneratorService {
             // 이 part를 분할해서 처리
             let lastIndex = 0;
 
-            blanksInThisPart.forEach(blankIndex => {
-              const blankMatch = part.text!.substring(blankIndex).match(/\s{15,}/);
+            blanksInThisPart.forEach((blankIndex) => {
+              const blankMatch = part
+                .text!.substring(blankIndex)
+                .match(/\s{15,}/);
               if (!blankMatch) return;
 
               const blankEnd = blankIndex + blankMatch[0].length;
@@ -332,14 +403,14 @@ export class ExcelGeneratorService {
               if (blankIndex > lastIndex) {
                 newRichText.push({
                   ...part,
-                  text: part.text!.substring(lastIndex, blankIndex)
+                  text: part.text!.substring(lastIndex, blankIndex),
                 });
               }
 
               // 근로자명 (#002060)
               newRichText.push({
                 font: { ...part.font, color: { argb: 'FF002060' } },
-                text: `            ${workerName}            `
+                text: `            ${workerName}            `,
               });
 
               lastIndex = blankEnd;
@@ -349,7 +420,7 @@ export class ExcelGeneratorService {
             if (lastIndex < part.text!.length) {
               newRichText.push({
                 ...part,
-                text: part.text!.substring(lastIndex)
+                text: part.text!.substring(lastIndex),
               });
             }
           }
@@ -359,12 +430,22 @@ export class ExcelGeneratorService {
       } else if (mode === 'last') {
         // 'last' 모드: 마지막 긴 공백만 교체
         // 먼저 모든 공백 위치를 찾음
-        const allMatches: Array<{ partIndex: number; matchIndex: number; matchLength: number; match: RegExpMatchArray }> = [];
+        const allMatches: Array<{
+          partIndex: number;
+          matchIndex: number;
+          matchLength: number;
+          match: RegExpMatchArray;
+        }> = [];
         richTextValue.richText.forEach((part, partIndex) => {
           if (part.text) {
             const matches = Array.from(part.text.matchAll(/\s{15,}/g));
-            matches.forEach(match => {
-              allMatches.push({ partIndex, matchIndex: match.index!, matchLength: match[0].length, match });
+            matches.forEach((match) => {
+              allMatches.push({
+                partIndex,
+                matchIndex: match.index!,
+                matchLength: match[0].length,
+                match,
+              });
             });
           }
         });
@@ -376,8 +457,13 @@ export class ExcelGeneratorService {
           richTextValue.richText.forEach((part, partIndex) => {
             if (partIndex === lastMatchInfo.partIndex && part.text) {
               // 마지막 매치가 있는 part 처리
-              const beforeText = part.text.substring(0, lastMatchInfo.matchIndex);
-              const afterText = part.text.substring(lastMatchInfo.matchIndex + lastMatchInfo.matchLength);
+              const beforeText = part.text.substring(
+                0,
+                lastMatchInfo.matchIndex
+              );
+              const afterText = part.text.substring(
+                lastMatchInfo.matchIndex + lastMatchInfo.matchLength
+              );
 
               if (beforeText) {
                 newRichText.push({ ...part, text: beforeText });
@@ -385,7 +471,7 @@ export class ExcelGeneratorService {
 
               newRichText.push({
                 font: { ...part.font, color: { argb: 'FF002060' } },
-                text: `            ${workerName}            `
+                text: `            ${workerName}            `,
               });
 
               if (afterText) {
@@ -405,7 +491,11 @@ export class ExcelGeneratorService {
         let totalReplaceCount = 0;
 
         for (const part of richTextValue.richText) {
-          if (part.text && part.text.match(/\s{15,}/) && (mode === 'all' || totalReplaceCount === 0)) {
+          if (
+            part.text &&
+            part.text.match(/\s{15,}/) &&
+            (mode === 'all' || totalReplaceCount === 0)
+          ) {
             // 이 part에 긴 공백이 있으면 분리해서 처리
             const regex = /\s{15,}/g;
             let lastIndex = 0;
@@ -421,14 +511,14 @@ export class ExcelGeneratorService {
               if (match.index > lastIndex) {
                 newRichText.push({
                   ...part,
-                  text: part.text.substring(lastIndex, match.index)
+                  text: part.text.substring(lastIndex, match.index),
                 });
               }
 
               // 근로자명 (#002060)
               newRichText.push({
                 font: { ...part.font, color: { argb: 'FF002060' } },
-                text: `            ${workerName}            `
+                text: `            ${workerName}            `,
               });
 
               lastIndex = regex.lastIndex;
@@ -439,7 +529,7 @@ export class ExcelGeneratorService {
             if (lastIndex < part.text.length) {
               newRichText.push({
                 ...part,
-                text: part.text.substring(lastIndex)
+                text: part.text.substring(lastIndex),
               });
             }
           } else {
@@ -455,7 +545,7 @@ export class ExcelGeneratorService {
       cell.value = workerName;
       cell.font = {
         ...cell.font,
-        color: { argb: 'FF002060' }
+        color: { argb: 'FF002060' },
       };
     }
   }
@@ -474,17 +564,14 @@ export class ExcelGeneratorService {
     // 폰트 색상을 검정색으로 명시적으로 설정
     cell.font = {
       ...cell.font,
-      color: { argb: 'FF000000' } // 검정색
+      color: { argb: 'FF000000' }, // 검정색
     };
   }
 
   /**
    * 계약 조건 입력 (각 근로자의 계약 조건 사용)
    */
-  private fillContractInfo(
-    worksheet: ExcelJS.Worksheet,
-    worker: Worker
-  ): void {
+  private fillContractInfo(worksheet: ExcelJS.Worksheet, worker: Worker): void {
     const { contractInfo } = EXCEL_CELL_MAPPING;
 
     worksheet.getCell(contractInfo.workplace).value = worker.workplace || '';
@@ -502,11 +589,20 @@ export class ExcelGeneratorService {
       // 계약 기간 계산 (개월)
       const monthsDiff =
         (endDate.getFullYear() - startDate.getFullYear()) * 12 +
-        (endDate.getMonth() - startDate.getMonth()) + 1;
+        (endDate.getMonth() - startDate.getMonth()) +
+        1;
 
       // richText 형식으로 날짜 설정 (원본 스타일 유지)
-      this.setDateWithStyle(worksheet, contractInfo.startDate, this.formatDate(startDate) + ' ~');
-      this.setDateWithStyle(worksheet, contractInfo.endDate, `${this.formatDate(endDate)} (${monthsDiff}개월)`);
+      this.setDateWithStyle(
+        worksheet,
+        contractInfo.startDate,
+        this.formatDate(startDate) + ' ~'
+      );
+      this.setDateWithStyle(
+        worksheet,
+        contractInfo.endDate,
+        `${this.formatDate(endDate)} (${monthsDiff}개월)`
+      );
 
       // A46 작성일 설정 (계약 시작일 사용)
       this.setWrittenDate(worksheet, contractInfo.writtenDate, startDate);
@@ -527,7 +623,7 @@ export class ExcelGeneratorService {
     cell.value = {
       richText: [
         {
-          text: ' ' // 앞 공백
+          text: ' ', // 앞 공백
         },
         {
           font: {
@@ -537,11 +633,11 @@ export class ExcelGeneratorService {
             color: { theme: 1 } as Partial<ExcelJS.Color>, // 파란색
             name: '굴림',
             family: 3,
-            charset: 129
+            charset: 129,
           },
-          text: ` ${dateText}`
-        }
-      ]
+          text: ` ${dateText}`,
+        },
+      ],
     };
   }
 
@@ -593,7 +689,11 @@ export class ExcelGeneratorService {
       // 일반 텍스트인 경우
       const updatedValue = `작성일 :    ${year}  .${monthPadded}.${dayPadded}.`;
       cell.value = updatedValue;
-    } else if (originalValue && typeof originalValue === 'object' && 'richText' in originalValue) {
+    } else if (
+      originalValue &&
+      typeof originalValue === 'object' &&
+      'richText' in originalValue
+    ) {
       // richText인 경우 - 원본 스타일 유지하면서 날짜만 교체
       const richTextValue = originalValue as { richText: ExcelJS.RichText[] };
       const newRichText: ExcelJS.RichText[] = [];
@@ -608,7 +708,7 @@ export class ExcelGeneratorService {
 
           newRichText.push({
             ...part,
-            text: updatedText
+            text: updatedText,
           });
         } else {
           newRichText.push(part);
@@ -629,13 +729,16 @@ export class ExcelGeneratorService {
     data: ContractFormData,
     worker: Worker
   ): Promise<ArrayBuffer> {
-    const workbook = await this.loadTemplate();
-
-    // 근로자의 계약 시작일을 사용하여 월 결정 (없으면 현재 월 사용)
-    const contractDate = worker.contractStartDate && worker.contractStartDate !== null
-      ? new Date(worker.contractStartDate)
-      : new Date();
+    // 근로자의 계약 시작일을 사용하여 연도와 월 결정 (없으면 현재 날짜 사용)
+    const contractDate =
+      worker.contractStartDate && worker.contractStartDate !== null
+        ? new Date(worker.contractStartDate)
+        : new Date();
+    const year = contractDate.getFullYear();
     const month = contractDate.getMonth() + 1;
+
+    // 연도별 템플릿 로드
+    const workbook = await this.loadTemplate(year);
     const worksheet = this.selectWorksheet(workbook, month);
 
     this.fillCompanyInfo(worksheet, data);
@@ -682,12 +785,12 @@ export class ExcelGeneratorService {
 
     // 여백 설정 (인치) - 파일철 보관을 위해 왼쪽 여백을 넓게 설정
     worksheet.pageSetup.margins = {
-      left: 1.0,    // 파일철 구멍을 위한 여백 (약 25mm)
-      right: 0.75,  // 오른쪽 여백 (약 19mm)
-      top: 0.75,    // 위쪽 여백 (약 19mm)
+      left: 1.0, // 파일철 구멍을 위한 여백 (약 25mm)
+      right: 0.75, // 오른쪽 여백 (약 19mm)
+      top: 0.75, // 위쪽 여백 (약 19mm)
       bottom: 0.75, // 아래쪽 여백 (약 19mm)
       header: 0.3,
-      footer: 0.3
+      footer: 0.3,
     };
   }
 
@@ -712,9 +815,10 @@ export class ExcelGeneratorService {
    */
   private generateFileName(worker: Worker): string {
     const workerName = worker.name || '근로자';
-    const date = worker.contractStartDate && worker.contractStartDate !== null
-      ? new Date(worker.contractStartDate)
-      : new Date();
+    const date =
+      worker.contractStartDate && worker.contractStartDate !== null
+        ? new Date(worker.contractStartDate)
+        : new Date();
     const year = date.getFullYear();
     const month = date.getMonth() + 1;
     return `근로계약서_${workerName}_${year}년${month}월.xlsx`;
@@ -760,7 +864,7 @@ export class ExcelGeneratorService {
 
       // 브라우저 다운로드 간격 (500ms)
       if (i < total - 1) {
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise((resolve) => setTimeout(resolve, 500));
       }
     }
   }
