@@ -144,8 +144,33 @@ export class ExcelGeneratorService {
       // B44: "동의자 성명 :" 뒤 빈칸을 근로자명으로 교체 (마지막만)
       this.fillWorkerNameInCell(worksheet, workerInfo.signatureB44, worker.name, 'last');
 
-      // B45: 마지막 빈칸을 근로자명으로 교체
-      this.fillWorkerNameInCell(worksheet, workerInfo.signatureB45, worker.name, 'last');
+      // B45: 교부받았음 뒤에 근로자명 + (인) 형태로 직접 설정 (잘림 방지)
+      const cellB45 = worksheet.getCell(workerInfo.signatureB45);
+      const originalB45 = cellB45.value;
+      if (typeof originalB45 === 'string') {
+        // "교부받았음" 뒤의 공백과 (인)을 찾아서 교체
+        const match = originalB45.match(/^(.+교부받았음)(\s+)\(인\)$/);
+        if (match) {
+          const beforeText = match[1];
+          cellB45.value = {
+            richText: [
+              {
+                text: beforeText
+              },
+              {
+                text: '     ' // 교부받았음과 이름 사이 공백
+              },
+              {
+                font: { color: { argb: 'FF002060' } },
+                text: worker.name
+              },
+              {
+                text: '                          (인)' // 이름과 (인) 사이 충분한 공백
+              }
+            ]
+          };
+        }
+      }
     }
 
     this.setCellWithBlackText(worksheet, workerInfo.residentNumber, worker.residentNumber || '');
