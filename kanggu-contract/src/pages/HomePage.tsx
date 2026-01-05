@@ -13,9 +13,6 @@ export const HomePage: React.FC = () => {
           <br />
           자동화 시스템
         </h1>
-        <p className="text-base sm:text-lg text-[var(--color-luxury-silver)] max-w-2xl mx-auto font-[family-name:var(--font-family-sans)]">
-          프리미엄 근로계약서 관리 플랫폼
-        </p>
       </div>
 
       {/* Feature Cards */}
