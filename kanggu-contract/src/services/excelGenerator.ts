@@ -114,11 +114,12 @@ export class ExcelGeneratorService {
       cellE4.alignment = { horizontal: 'center', vertical: 'middle' };
       cellE4.font = { ...cellE4.font, color: { argb: 'FF002060' } };
 
-      // B19: "동의자" 뒤 빈칸을 근로자명으로 교체
+      // B19: "동의자" 뒤 빈칸을 근로자명으로 교체 (마지막만)
       this.fillWorkerNameInCell(
         worksheet,
         workerInfo.signatureB19,
-        worker.name
+        worker.name,
+        'last'
       );
 
       // B21: "동의자" 뒤 빈칸을 근로자명으로 교체 (마지막만)
@@ -145,18 +146,20 @@ export class ExcelGeneratorService {
         'name-fields'
       );
 
-      // B44: "동의자 성명 :" 뒤 빈칸을 근로자명으로 교체
+      // B44: "동의자 성명 :" 뒤 빈칸을 근로자명으로 교체 (마지막만)
       this.fillWorkerNameInCell(
         worksheet,
         workerInfo.signatureB44,
-        worker.name
+        worker.name,
+        'last'
       );
 
-      // B45: 마지막 빈칸을 근로자명으로 교체
+      // B45: 마지막 빈칸을 근로자명으로 교체 (마지막만)
       this.fillWorkerNameInCell(
         worksheet,
         workerInfo.signatureB45,
-        worker.name
+        worker.name,
+        'last'
       );
     }
 
