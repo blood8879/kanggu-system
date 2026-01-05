@@ -114,12 +114,12 @@ export class ExcelGeneratorService {
       cellE4.alignment = { horizontal: 'center', vertical: 'middle' };
       cellE4.font = { ...cellE4.font, color: { argb: 'FF002060' } };
 
-      // B19: "동의자" 뒤 빈칸을 근로자명으로 교체 (마지막만)
+      // B19: "동의자" 뒤 "(인)" 앞 빈칸을 근로자명으로 교체
       this.fillWorkerNameInCell(
         worksheet,
         workerInfo.signatureB19,
         worker.name,
-        'last'
+        'consenter'
       );
 
       // B21: "동의자" 뒤 빈칸을 근로자명으로 교체 (마지막만)
@@ -146,20 +146,20 @@ export class ExcelGeneratorService {
         'name-fields'
       );
 
-      // B44: "동의자 성명 :" 뒤 빈칸을 근로자명으로 교체 (마지막만)
+      // B44: "동의자 성명 :" 뒤 "(인)" 앞 빈칸을 근로자명으로 교체
       this.fillWorkerNameInCell(
         worksheet,
         workerInfo.signatureB44,
         worker.name,
-        'last'
+        'consenter-name'
       );
 
-      // B45: 마지막 빈칸을 근로자명으로 교체 (마지막만)
+      // B45: "동의자" 뒤 "(인)" 앞 빈칸을 근로자명으로 교체
       this.fillWorkerNameInCell(
         worksheet,
         workerInfo.signatureB45,
         worker.name,
-        'last'
+        'consenter'
       );
     }
 
@@ -183,13 +183,16 @@ export class ExcelGeneratorService {
   /**
    * 셀의 원본 내용에서 빈칸 부분만 근로자명으로 교체
    * 근로자명은 #002060 색상, 나머지 원본 텍스트는 원래 색상 유지
-   * @param mode - 'all': 모든 빈칸 교체 (기본값), 'first': 첫 번째 빈칸만 교체, 'last': 마지막 빈칸만 교체, 'name-fields': "성명 :" 뒤의 모든 빈칸 교체
+   * @param mode - 'all': 모든 빈칸 교체 (기본값), 'first': 첫 번째 빈칸만 교체, 'last': 마지막 빈칸만 교체,
+   *               'name-fields': "성명 :" 뒤의 모든 빈칸 교체,
+   *               'consenter': "동의자" 뒤 "(인)" 앞 빈칸만 교체,
+   *               'consenter-name': "동의자 성명 :" 뒤 "(인)" 앞 빈칸만 교체
    */
   private fillWorkerNameInCell(
     worksheet: ExcelJS.Worksheet,
     cellAddress: string,
     workerName: string,
-    mode: 'all' | 'first' | 'last' | 'name-fields' = 'all'
+    mode: 'all' | 'first' | 'last' | 'name-fields' | 'consenter' | 'consenter-name' = 'all'
   ): void {
     const cell = worksheet.getCell(cellAddress);
     const originalValue = cell.value;
@@ -230,6 +233,92 @@ export class ExcelGeneratorService {
           });
 
           lastIndex = nameFieldRegex.lastIndex;
+        }
+
+        // 마지막 남은 텍스트 (원본 색상)
+        if (lastIndex < originalValue.length) {
+          parts.push({
+            font: originalFont,
+            text: originalValue.substring(lastIndex),
+          });
+        }
+      } else if (mode === 'consenter') {
+        // 'consenter' 모드: "동의자" 뒤 "(인)" 앞의 빈칸만 교체
+        const consenterRegex = /(동의자)(\s+)\(인\)/g;
+        let lastIndex = 0;
+        let match;
+
+        while ((match = consenterRegex.exec(originalValue)) !== null) {
+          // "동의자" 이전 텍스트 (원본 색상)
+          if (match.index > lastIndex) {
+            parts.push({
+              font: originalFont,
+              text: originalValue.substring(lastIndex, match.index),
+            });
+          }
+
+          // "동의자" 부분 (원본 색상)
+          parts.push({
+            font: originalFont,
+            text: match[1],
+          });
+
+          // 근로자명 (#002060)
+          parts.push({
+            font: { ...originalFont, color: { argb: 'FF002060' } },
+            text: `            ${workerName}            `,
+          });
+
+          // "(인)" 부분 (원본 색상)
+          parts.push({
+            font: originalFont,
+            text: '(인)',
+          });
+
+          lastIndex = consenterRegex.lastIndex;
+        }
+
+        // 마지막 남은 텍스트 (원본 색상)
+        if (lastIndex < originalValue.length) {
+          parts.push({
+            font: originalFont,
+            text: originalValue.substring(lastIndex),
+          });
+        }
+      } else if (mode === 'consenter-name') {
+        // 'consenter-name' 모드: "동의자 성명 :" 뒤 "(인)" 앞의 빈칸만 교체
+        const consenterNameRegex = /(동의자\s*성명\s*:\s*)(\s+)\(인\)/g;
+        let lastIndex = 0;
+        let match;
+
+        while ((match = consenterNameRegex.exec(originalValue)) !== null) {
+          // "동의자 성명 :" 이전 텍스트 (원본 색상)
+          if (match.index > lastIndex) {
+            parts.push({
+              font: originalFont,
+              text: originalValue.substring(lastIndex, match.index),
+            });
+          }
+
+          // "동의자 성명 :" 부분 (원본 색상)
+          parts.push({
+            font: originalFont,
+            text: match[1],
+          });
+
+          // 근로자명 (#002060)
+          parts.push({
+            font: { ...originalFont, color: { argb: 'FF002060' } },
+            text: `            ${workerName}            `,
+          });
+
+          // "(인)" 부분 (원본 색상)
+          parts.push({
+            font: originalFont,
+            text: '(인)',
+          });
+
+          lastIndex = consenterNameRegex.lastIndex;
         }
 
         // 마지막 남은 텍스트 (원본 색상)
@@ -426,6 +515,116 @@ export class ExcelGeneratorService {
                 text: part.text!.substring(lastIndex),
               });
             }
+          }
+        });
+
+        cell.value = { richText: newRichText };
+      } else if (mode === 'consenter') {
+        // 'consenter' 모드: "동의자" 뒤 "(인)" 앞의 빈칸만 교체 (richText)
+        const newRichText: ExcelJS.RichText[] = [];
+
+        richTextValue.richText.forEach((part) => {
+          if (!part.text || !part.text.match(/동의자\s+\(인\)/)) {
+            newRichText.push(part);
+            return;
+          }
+
+          // "동의자 ... (인)" 패턴을 찾아서 교체
+          const consenterRegex = /(동의자)(\s+)\(인\)/g;
+          let lastIndex = 0;
+          let match;
+
+          while ((match = consenterRegex.exec(part.text)) !== null) {
+            // "동의자" 이전 텍스트
+            if (match.index > lastIndex) {
+              newRichText.push({
+                ...part,
+                text: part.text.substring(lastIndex, match.index),
+              });
+            }
+
+            // "동의자"
+            newRichText.push({
+              ...part,
+              text: match[1],
+            });
+
+            // 근로자명 (#002060)
+            newRichText.push({
+              font: { ...part.font, color: { argb: 'FF002060' } },
+              text: `            ${workerName}            `,
+            });
+
+            // "(인)"
+            newRichText.push({
+              ...part,
+              text: '(인)',
+            });
+
+            lastIndex = consenterRegex.lastIndex;
+          }
+
+          // 마지막 남은 텍스트
+          if (lastIndex < part.text.length) {
+            newRichText.push({
+              ...part,
+              text: part.text.substring(lastIndex),
+            });
+          }
+        });
+
+        cell.value = { richText: newRichText };
+      } else if (mode === 'consenter-name') {
+        // 'consenter-name' 모드: "동의자 성명 :" 뒤 "(인)" 앞의 빈칸만 교체 (richText)
+        const newRichText: ExcelJS.RichText[] = [];
+
+        richTextValue.richText.forEach((part) => {
+          if (!part.text || !part.text.match(/동의자\s*성명\s*:\s*\s+\(인\)/)) {
+            newRichText.push(part);
+            return;
+          }
+
+          // "동의자 성명 : ... (인)" 패턴을 찾아서 교체
+          const consenterNameRegex = /(동의자\s*성명\s*:\s*)(\s+)\(인\)/g;
+          let lastIndex = 0;
+          let match;
+
+          while ((match = consenterNameRegex.exec(part.text)) !== null) {
+            // "동의자 성명 :" 이전 텍스트
+            if (match.index > lastIndex) {
+              newRichText.push({
+                ...part,
+                text: part.text.substring(lastIndex, match.index),
+              });
+            }
+
+            // "동의자 성명 :"
+            newRichText.push({
+              ...part,
+              text: match[1],
+            });
+
+            // 근로자명 (#002060)
+            newRichText.push({
+              font: { ...part.font, color: { argb: 'FF002060' } },
+              text: `            ${workerName}            `,
+            });
+
+            // "(인)"
+            newRichText.push({
+              ...part,
+              text: '(인)',
+            });
+
+            lastIndex = consenterNameRegex.lastIndex;
+          }
+
+          // 마지막 남은 텍스트
+          if (lastIndex < part.text.length) {
+            newRichText.push({
+              ...part,
+              text: part.text.substring(lastIndex),
+            });
           }
         });
 
