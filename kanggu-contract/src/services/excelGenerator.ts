@@ -670,23 +670,20 @@ export class ExcelGeneratorService {
     // 인쇄 영역을 51번 행까지 설정
     this.setPrintArea(worksheet);
 
-    // 계약 월 시트만 남기고 나머지 시트는 완전히 삭제
+    // 계약 월 시트만 남기고 나머지 시트는 숨김 처리
+    // (삭제 대신 숨김 처리하여 workbook 구조 손상 방지)
     const targetSheetName = worksheet.name;
-
-    // 삭제할 시트의 ID 목록 수집 (ID는 변경되지 않으므로 안전)
-    const sheetsToRemove: number[] = [];
     workbook.worksheets.forEach((sheet) => {
       if (sheet.name !== targetSheetName) {
-        sheetsToRemove.push(sheet.id);
+        sheet.state = 'veryHidden';
       }
     });
 
-    // 시트 삭제 (역순으로 삭제하여 인덱스 문제 방지)
-    sheetsToRemove.reverse().forEach((sheetId) => {
-      workbook.removeWorksheet(sheetId);
+    // Buffer 작성 시 옵션 명시
+    return await workbook.xlsx.writeBuffer({
+      useStyles: true,
+      useSharedStrings: true
     });
-
-    return await workbook.xlsx.writeBuffer();
   }
 
   /**
