@@ -180,18 +180,23 @@ export class ExcelGeneratorService {
 
         richTextValue.richText.forEach((part) => {
           if (part.text && part.text.includes('교부받았음')) {
-            // "교부받았음"이 포함된 part 처리
-            newRichText.push({
-              ...part,
-              text: part.text // 원본 텍스트 유지
-            });
-            // 근로자명 추가 (파란색)
-            newRichText.push({
-              font: { color: { argb: 'FF002060' } },
-              text: `     ${worker.name}`
-            });
+            // "교부받았음"이 포함된 part는 그대로 유지
+            newRichText.push(part);
           } else if (part.text && part.text.includes('(인)')) {
-            // (인)이 포함된 part: 충분한 공백 + (인)
+            // "(인)"이 포함된 part를 분할: 근로자명 + 공백 + (인)
+            // 원본 폰트 스타일 보존 (빨간색, 밑줄, 굵은글씨)
+            const originalFont = part.font || {};
+
+            // 근로자명 (파란색으로 표시)
+            newRichText.push({
+              font: {
+                ...originalFont,
+                color: { argb: 'FF002060' } // 파란색
+              },
+              text: worker.name
+            });
+
+            // 공백 + (인) (원본 스타일 유지)
             newRichText.push({
               ...part,
               text: '                          (인)'
@@ -211,7 +216,6 @@ export class ExcelGeneratorService {
           cellB45.value = {
             richText: [
               { text: beforeText },
-              { text: '     ' },
               { font: { color: { argb: 'FF002060' } }, text: worker.name },
               { text: '                          (인)' }
             ]
