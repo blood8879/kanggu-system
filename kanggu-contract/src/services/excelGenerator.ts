@@ -178,7 +178,7 @@ export class ExcelGeneratorService {
         const richTextValue = originalB45 as { richText: ExcelJS.RichText[] };
         const newRichText: ExcelJS.RichText[] = [];
 
-        richTextValue.richText.forEach((part, index) => {
+        richTextValue.richText.forEach((part) => {
           if (part.text && part.text.includes('교부받았음')) {
             // "교부받았음"이 포함된 part 처리
             newRichText.push({
