@@ -141,32 +141,79 @@ export class ExcelGeneratorService {
       };
       cellB43.alignment = { horizontal: 'center', vertical: 'middle' };
 
-      // B44: "동의자 성명 :" 뒤 빈칸을 근로자명으로 교체 (마지막만)
-      this.fillWorkerNameInCell(worksheet, workerInfo.signatureB44, worker.name, 'last');
+      // B44: 안전보호구 수령확인 동의자 성명 - richText 형식 직접 처리
+      const cellB44 = worksheet.getCell(workerInfo.signatureB44);
+      const originalB44 = cellB44.value;
+
+      if (originalB44 && typeof originalB44 === 'object' && 'richText' in originalB44) {
+        // richText 형식인 경우
+        const richTextValue = originalB44 as { richText: ExcelJS.RichText[] };
+        const newRichText: ExcelJS.RichText[] = [];
+
+        richTextValue.richText.forEach((part) => {
+          if (part.text && part.text.trim() === '' && part.text.length > 15) {
+            // 긴 공백 part를 근로자명으로 교체
+            newRichText.push({
+              font: { color: { argb: 'FF002060' } },
+              text: `            ${worker.name}            `
+            });
+          } else {
+            // 다른 part는 그대로 유지
+            newRichText.push(part);
+          }
+        });
+
+        cellB44.value = { richText: newRichText };
+      } else {
+        // 일반 문자열인 경우 기존 방식 사용
+        this.fillWorkerNameInCell(worksheet, workerInfo.signatureB44, worker.name, 'last');
+      }
 
       // B45: 교부받았음 뒤에 근로자명 + (인) 형태로 직접 설정 (잘림 방지)
       const cellB45 = worksheet.getCell(workerInfo.signatureB45);
       const originalB45 = cellB45.value;
-      if (typeof originalB45 === 'string') {
-        // "교부받았음" 뒤의 공백과 (인)을 찾아서 교체
+
+      if (originalB45 && typeof originalB45 === 'object' && 'richText' in originalB45) {
+        // richText 형식인 경우
+        const richTextValue = originalB45 as { richText: ExcelJS.RichText[] };
+        const newRichText: ExcelJS.RichText[] = [];
+
+        richTextValue.richText.forEach((part, index) => {
+          if (part.text && part.text.includes('교부받았음')) {
+            // "교부받았음"이 포함된 part 처리
+            newRichText.push({
+              ...part,
+              text: part.text // 원본 텍스트 유지
+            });
+            // 근로자명 추가 (파란색)
+            newRichText.push({
+              font: { color: { argb: 'FF002060' } },
+              text: `     ${worker.name}`
+            });
+          } else if (part.text && part.text.includes('(인)')) {
+            // (인)이 포함된 part: 충분한 공백 + (인)
+            newRichText.push({
+              ...part,
+              text: '                          (인)'
+            });
+          } else {
+            // 다른 part는 그대로 유지
+            newRichText.push(part);
+          }
+        });
+
+        cellB45.value = { richText: newRichText };
+      } else if (typeof originalB45 === 'string') {
+        // 일반 문자열인 경우
         const match = originalB45.match(/^(.+교부받았음)(\s+)\(인\)$/);
         if (match) {
           const beforeText = match[1];
           cellB45.value = {
             richText: [
-              {
-                text: beforeText
-              },
-              {
-                text: '     ' // 교부받았음과 이름 사이 공백
-              },
-              {
-                font: { color: { argb: 'FF002060' } },
-                text: worker.name
-              },
-              {
-                text: '                          (인)' // 이름과 (인) 사이 충분한 공백
-              }
+              { text: beforeText },
+              { text: '     ' },
+              { font: { color: { argb: 'FF002060' } }, text: worker.name },
+              { text: '                          (인)' }
             ]
           };
         }
