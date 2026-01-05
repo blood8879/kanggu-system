@@ -90,12 +90,13 @@ export class ExcelGeneratorService {
     // 근로자 정보 입력 (G열에만 입력하면 됨) - #002060 색상으로 설정
     // 근로자명: 이름(#002060) + 공백 + (서명)(회색 #808080)
     if (worker.name) {
+      const workerName = worker.name; // TypeScript 타입 가드를 위한 로컬 변수
       const nameCell = worksheet.getCell(workerInfo.name);
       nameCell.value = {
         richText: [
           {
             font: { color: { argb: 'FF002060' } }, // #002060
-            text: worker.name
+            text: workerName
           },
           {
             text: '                          ' // 우측 끝 배치를 위한 공백
@@ -110,21 +111,21 @@ export class ExcelGeneratorService {
       // 추가 서명 필드들에 근로자명 입력 (원본 내용의 빈칸만 교체)
       // E4: 단순히 이름만 (가운데 정렬)
       const cellE4 = worksheet.getCell(workerInfo.signatureE4);
-      cellE4.value = worker.name;
+      cellE4.value = workerName;
       cellE4.alignment = { horizontal: 'center', vertical: 'middle' };
       cellE4.font = { ...cellE4.font, color: { argb: 'FF002060' } };
 
       // B19: "동의자" 뒤 빈칸을 근로자명으로 교체
-      this.fillWorkerNameInCell(worksheet, workerInfo.signatureB19, worker.name);
+      this.fillWorkerNameInCell(worksheet, workerInfo.signatureB19, workerName);
 
       // B21: "동의자" 뒤 빈칸을 근로자명으로 교체 (마지막만)
-      this.fillWorkerNameInCell(worksheet, workerInfo.signatureB21, worker.name, 'last');
+      this.fillWorkerNameInCell(worksheet, workerInfo.signatureB21, workerName, 'last');
 
       // B25: "동의자 성명 :" 뒤 빈칸을 근로자명으로 교체 (마지막만)
-      this.fillWorkerNameInCell(worksheet, workerInfo.signatureB25, worker.name, 'last');
+      this.fillWorkerNameInCell(worksheet, workerInfo.signatureB25, workerName, 'last');
 
       // B36: "성명 :" 패턴 뒤의 모든 빈칸을 근로자명으로 교체 (특수 케이스)
-      this.fillWorkerNameInCell(worksheet, workerInfo.signatureB36, worker.name, 'name-fields');
+      this.fillWorkerNameInCell(worksheet, workerInfo.signatureB36, workerName, 'name-fields');
 
       // B43: 안전보호구 지급확인 (인) - 단순히 근로자명 + (인) 형태로 설정
       const cellB43 = worksheet.getCell(workerInfo.signatureB43);
@@ -132,7 +133,7 @@ export class ExcelGeneratorService {
         richText: [
           {
             font: { color: { argb: 'FF002060' } },
-            text: worker.name
+            text: workerName
           },
           {
             text: ' (인)'
@@ -155,7 +156,7 @@ export class ExcelGeneratorService {
             // 긴 공백 part를 근로자명으로 교체
             newRichText.push({
               font: { color: { argb: 'FF002060' } },
-              text: `            ${worker.name}            `
+              text: `            ${workerName}            `
             });
           } else {
             // 다른 part는 그대로 유지
@@ -166,7 +167,7 @@ export class ExcelGeneratorService {
         cellB44.value = { richText: newRichText };
       } else {
         // 일반 문자열인 경우 기존 방식 사용
-        this.fillWorkerNameInCell(worksheet, workerInfo.signatureB44, worker.name, 'last');
+        this.fillWorkerNameInCell(worksheet, workerInfo.signatureB44, workerName, 'last');
       }
 
       // B45: 교부받았음 뒤에 근로자명 + (인) 형태로 직접 설정 (잘림 방지)
@@ -193,7 +194,7 @@ export class ExcelGeneratorService {
                 ...originalFont,
                 color: { argb: 'FF002060' } // 파란색
               },
-              text: worker.name
+              text: workerName
             });
 
             // 공백 + (인) (원본 스타일 유지)
@@ -216,7 +217,7 @@ export class ExcelGeneratorService {
           cellB45.value = {
             richText: [
               { text: beforeText },
-              { font: { color: { argb: 'FF002060' } }, text: worker.name },
+              { font: { color: { argb: 'FF002060' } }, text: workerName },
               { text: '                          (인)' }
             ]
           };
