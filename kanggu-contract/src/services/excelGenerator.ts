@@ -673,17 +673,17 @@ export class ExcelGeneratorService {
     // 계약 월 시트만 남기고 나머지 시트는 완전히 삭제
     const targetSheetName = worksheet.name;
 
-    // 삭제할 시트 목록 수집 (역순으로 삭제하기 위해)
-    const sheetsToRemove: string[] = [];
+    // 삭제할 시트의 ID 목록 수집 (ID는 변경되지 않으므로 안전)
+    const sheetsToRemove: number[] = [];
     workbook.worksheets.forEach((sheet) => {
       if (sheet.name !== targetSheetName) {
-        sheetsToRemove.push(sheet.name);
+        sheetsToRemove.push(sheet.id);
       }
     });
 
-    // 시트 삭제
-    sheetsToRemove.forEach((sheetName) => {
-      workbook.removeWorksheet(sheetName);
+    // 시트 삭제 (역순으로 삭제하여 인덱스 문제 방지)
+    sheetsToRemove.reverse().forEach((sheetId) => {
+      workbook.removeWorksheet(sheetId);
     });
 
     return await workbook.xlsx.writeBuffer();
@@ -753,7 +753,8 @@ export class ExcelGeneratorService {
     worker: Worker
   ): Promise<void> {
     const buffer = await this.generateSingleContract(data, worker);
-    const blob = new Blob([buffer], {
+    // ArrayBuffer를 Uint8Array로 변환하여 Blob 생성 (브라우저 호환성 향상)
+    const blob = new Blob([new Uint8Array(buffer)], {
       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     });
 
