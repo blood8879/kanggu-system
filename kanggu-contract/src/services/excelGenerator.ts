@@ -652,16 +652,15 @@ export class ExcelGeneratorService {
     data: ContractFormData,
     worker: Worker
   ): Promise<ArrayBuffer> {
-    // 근로자의 계약 시작일을 사용하여 연도와 월 결정 (없으면 현재 날짜 사용)
+    // 근로자의 계약 시작일을 사용하여 월 결정 (없으면 현재 날짜 사용)
     const contractDate =
       worker.contractStartDate && worker.contractStartDate !== null
         ? new Date(worker.contractStartDate)
         : new Date();
-    const year = contractDate.getFullYear();
     const month = contractDate.getMonth() + 1;
 
-    // 연도별 템플릿 로드
-    const workbook = await this.loadTemplate(year);
+    // 기본 템플릿 로드 (연도 무관)
+    const workbook = await this.loadTemplate();
     const worksheet = this.selectWorksheet(workbook, month);
 
     this.fillCompanyInfo(worksheet, data);
