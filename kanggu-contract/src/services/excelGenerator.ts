@@ -126,11 +126,26 @@ export class ExcelGeneratorService {
       // B36: "성명 :" 패턴 뒤의 모든 빈칸을 근로자명으로 교체 (특수 케이스)
       this.fillWorkerNameInCell(worksheet, workerInfo.signatureB36, worker.name, 'name-fields');
 
-      // B44: "동의자 성명 :" 뒤 빈칸을 근로자명으로 교체
-      this.fillWorkerNameInCell(worksheet, workerInfo.signatureB44, worker.name);
+      // B43: 안전보호구 지급확인 (인) - 단순히 근로자명 + (인) 형태로 설정
+      const cellB43 = worksheet.getCell(workerInfo.signatureB43);
+      cellB43.value = {
+        richText: [
+          {
+            font: { color: { argb: 'FF002060' } },
+            text: worker.name
+          },
+          {
+            text: ' (인)'
+          }
+        ]
+      };
+      cellB43.alignment = { horizontal: 'center', vertical: 'middle' };
+
+      // B44: "동의자 성명 :" 뒤 빈칸을 근로자명으로 교체 (마지막만)
+      this.fillWorkerNameInCell(worksheet, workerInfo.signatureB44, worker.name, 'last');
 
       // B45: 마지막 빈칸을 근로자명으로 교체
-      this.fillWorkerNameInCell(worksheet, workerInfo.signatureB45, worker.name);
+      this.fillWorkerNameInCell(worksheet, workerInfo.signatureB45, worker.name, 'last');
     }
 
     this.setCellWithBlackText(worksheet, workerInfo.residentNumber, worker.residentNumber || '');
