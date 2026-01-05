@@ -154,12 +154,12 @@ export class ExcelGeneratorService {
         'consenter-name'
       );
 
-      // B45: "동의자" 뒤 "(인)" 앞 빈칸을 근로자명으로 교체
+      // B45: 마지막 빈칸을 근로자명으로 교체 (마지막만)
       this.fillWorkerNameInCell(
         worksheet,
         workerInfo.signatureB45,
         worker.name,
-        'consenter'
+        'last'
       );
     }
 
@@ -576,59 +576,93 @@ export class ExcelGeneratorService {
         cell.value = { richText: newRichText };
       } else if (mode === 'consenter-name') {
         // 'consenter-name' 모드: "동의자 성명 :" 뒤 "(인)" 앞의 빈칸만 교체 (richText)
+        // B44의 경우: Part1 "동의자 성명 :  ", Part2 "                           ", Part3 "(인)"
         const newRichText: ExcelJS.RichText[] = [];
+        let foundPattern = false;
+        let nameFieldPartIndex = -1;
 
-        richTextValue.richText.forEach((part) => {
-          if (!part.text || !part.text.match(/동의자\s*성명\s*:\s*\s+\(인\)/)) {
-            newRichText.push(part);
-            return;
-          }
-
-          // "동의자 성명 : ... (인)" 패턴을 찾아서 교체
-          const consenterNameRegex = /(동의자\s*성명\s*:\s*)(\s+)\(인\)/g;
-          let lastIndex = 0;
-          let match;
-
-          while ((match = consenterNameRegex.exec(part.text)) !== null) {
-            // "동의자 성명 :" 이전 텍스트
-            if (match.index > lastIndex) {
-              newRichText.push({
-                ...part,
-                text: part.text.substring(lastIndex, match.index),
-              });
-            }
-
-            // "동의자 성명 :"
-            newRichText.push({
-              ...part,
-              text: match[1],
-            });
-
-            // 근로자명 (#002060)
-            newRichText.push({
-              font: { ...part.font, color: { argb: 'FF002060' } },
-              text: `            ${workerName}            `,
-            });
-
-            // "(인)"
-            newRichText.push({
-              ...part,
-              text: '(인)',
-            });
-
-            lastIndex = consenterNameRegex.lastIndex;
-          }
-
-          // 마지막 남은 텍스트
-          if (lastIndex < part.text.length) {
-            newRichText.push({
-              ...part,
-              text: part.text.substring(lastIndex),
-            });
+        // 먼저 "동의자 성명 :"이 있는 part를 찾음
+        richTextValue.richText.forEach((part, index) => {
+          if (part.text && part.text.match(/동의자\s*성명\s*:\s*$/)) {
+            nameFieldPartIndex = index;
           }
         });
 
-        cell.value = { richText: newRichText };
+        if (nameFieldPartIndex !== -1) {
+          // "동의자 성명 :" 패턴을 찾았으면, 그 다음 part들을 처리
+          richTextValue.richText.forEach((part, index) => {
+            if (index < nameFieldPartIndex) {
+              // "동의자 성명 :" 이전 part들은 그대로 유지
+              newRichText.push(part);
+            } else if (index === nameFieldPartIndex) {
+              // "동의자 성명 :" part는 그대로 유지
+              newRichText.push(part);
+            } else if (index === nameFieldPartIndex + 1 && !foundPattern) {
+              // 다음 part가 공백이면 근로자명으로 교체
+              if (part.text && part.text.trim() === '') {
+                newRichText.push({
+                  font: { ...part.font, color: { argb: 'FF002060' } },
+                  text: `            ${workerName}            `,
+                });
+                foundPattern = true;
+              } else {
+                newRichText.push(part);
+              }
+            } else {
+              // 나머지 part들은 그대로 유지
+              newRichText.push(part);
+            }
+          });
+
+          cell.value = { richText: newRichText };
+        } else {
+          // "동의자 성명 :" 패턴이 없으면 단일 part에서 처리 (이전 로직)
+          richTextValue.richText.forEach((part) => {
+            if (!part.text || !part.text.match(/동의자\s*성명\s*:\s*\s+\(인\)/)) {
+              newRichText.push(part);
+              return;
+            }
+
+            const consenterNameRegex = /(동의자\s*성명\s*:\s*)(\s+)\(인\)/g;
+            let lastIndex = 0;
+            let match;
+
+            while ((match = consenterNameRegex.exec(part.text)) !== null) {
+              if (match.index > lastIndex) {
+                newRichText.push({
+                  ...part,
+                  text: part.text.substring(lastIndex, match.index),
+                });
+              }
+
+              newRichText.push({
+                ...part,
+                text: match[1],
+              });
+
+              newRichText.push({
+                font: { ...part.font, color: { argb: 'FF002060' } },
+                text: `            ${workerName}            `,
+              });
+
+              newRichText.push({
+                ...part,
+                text: '(인)',
+              });
+
+              lastIndex = consenterNameRegex.lastIndex;
+            }
+
+            if (lastIndex < part.text.length) {
+              newRichText.push({
+                ...part,
+                text: part.text.substring(lastIndex),
+              });
+            }
+          });
+
+          cell.value = { richText: newRichText };
+        }
       } else if (mode === 'last') {
         // 'last' 모드: 마지막 긴 공백만 교체
         // 먼저 모든 공백 위치를 찾음
