@@ -16,8 +16,9 @@ export const EXCEL_CELL_MAPPING = {
     signatureB21: 'B21',             // 개인정보제공 동의자 성명 : (인)
     signatureB25: 'B25',             // 동의자 성명 : (인)
     signatureB36: 'B36',             // ____(인)
-    signatureB44: 'B44',             // 동의자
-    signatureB45: 'B45',             // 동의자
+    signatureB43: 'B43',             // 안전보호구 지급확인 (인)
+    signatureB44: 'B44',             // 안전보호구 수령확인 동의자 성명 : (인)
+    signatureB45: 'B45',             // 교부받았음 (인)
   },
   contractInfo: {
     workplace: 'B6',                 // 근로장소

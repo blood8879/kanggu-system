@@ -90,12 +90,13 @@ export class ExcelGeneratorService {
     // 근로자 정보 입력 (G열에만 입력하면 됨) - #002060 색상으로 설정
     // 근로자명: 이름(#002060) + 공백 + (서명)(회색 #808080)
     if (worker.name) {
+      const workerName = worker.name; // TypeScript 타입 가드를 위한 로컬 변수
       const nameCell = worksheet.getCell(workerInfo.name);
       nameCell.value = {
         richText: [
           {
             font: { color: { argb: 'FF002060' } }, // #002060
-            text: worker.name
+            text: workerName
           },
           {
             text: '                          ' // 우측 끝 배치를 위한 공백
@@ -110,27 +111,141 @@ export class ExcelGeneratorService {
       // 추가 서명 필드들에 근로자명 입력 (원본 내용의 빈칸만 교체)
       // E4: 단순히 이름만 (가운데 정렬)
       const cellE4 = worksheet.getCell(workerInfo.signatureE4);
-      cellE4.value = worker.name;
+      cellE4.value = workerName;
       cellE4.alignment = { horizontal: 'center', vertical: 'middle' };
       cellE4.font = { ...cellE4.font, color: { argb: 'FF002060' } };
 
       // B19: "동의자" 뒤 빈칸을 근로자명으로 교체
-      this.fillWorkerNameInCell(worksheet, workerInfo.signatureB19, worker.name);
+      this.fillWorkerNameInCell(worksheet, workerInfo.signatureB19, workerName);
 
       // B21: "동의자" 뒤 빈칸을 근로자명으로 교체 (마지막만)
-      this.fillWorkerNameInCell(worksheet, workerInfo.signatureB21, worker.name, 'last');
+      this.fillWorkerNameInCell(worksheet, workerInfo.signatureB21, workerName, 'last');
 
       // B25: "동의자 성명 :" 뒤 빈칸을 근로자명으로 교체 (마지막만)
-      this.fillWorkerNameInCell(worksheet, workerInfo.signatureB25, worker.name, 'last');
+      this.fillWorkerNameInCell(worksheet, workerInfo.signatureB25, workerName, 'last');
 
       // B36: "성명 :" 패턴 뒤의 모든 빈칸을 근로자명으로 교체 (특수 케이스)
-      this.fillWorkerNameInCell(worksheet, workerInfo.signatureB36, worker.name, 'name-fields');
+      this.fillWorkerNameInCell(worksheet, workerInfo.signatureB36, workerName, 'name-fields');
 
-      // B44: "동의자 성명 :" 뒤 빈칸을 근로자명으로 교체
-      this.fillWorkerNameInCell(worksheet, workerInfo.signatureB44, worker.name);
+      // B43: 안전보호구 지급확인 (인) - 단순히 근로자명 + (인) 형태로 설정
+      const cellB43 = worksheet.getCell(workerInfo.signatureB43);
+      cellB43.value = {
+        richText: [
+          {
+            font: { color: { argb: 'FF002060' } },
+            text: workerName
+          },
+          {
+            text: ' (인)'
+          }
+        ]
+      };
+      cellB43.alignment = { horizontal: 'center', vertical: 'middle' };
 
-      // B45: 마지막 빈칸을 근로자명으로 교체
-      this.fillWorkerNameInCell(worksheet, workerInfo.signatureB45, worker.name);
+      // B44: 안전보호구 수령확인 동의자 성명 - richText 형식 직접 처리
+      const cellB44 = worksheet.getCell(workerInfo.signatureB44);
+      const originalB44 = cellB44.value;
+
+      if (originalB44 && typeof originalB44 === 'object' && 'richText' in originalB44) {
+        // richText 형식인 경우
+        const richTextValue = originalB44 as { richText: ExcelJS.RichText[] };
+        const newRichText: ExcelJS.RichText[] = [];
+
+        richTextValue.richText.forEach((part) => {
+          if (part.text && part.text.trim() === '' && part.text.length > 15) {
+            // 긴 공백 part를 근로자명으로 교체
+            newRichText.push({
+              font: { color: { argb: 'FF002060' } },
+              text: `            ${workerName}            `
+            });
+          } else {
+            // 다른 part는 그대로 유지
+            newRichText.push(part);
+          }
+        });
+
+        cellB44.value = { richText: newRichText };
+      } else {
+        // 일반 문자열인 경우 기존 방식 사용
+        this.fillWorkerNameInCell(worksheet, workerInfo.signatureB44, workerName, 'last');
+      }
+
+      // B45: 교부받았음 뒤에 근로자명 + (인) 형태로 직접 설정 (잘림 방지)
+      const cellB45 = worksheet.getCell(workerInfo.signatureB45);
+      const originalB45 = cellB45.value;
+
+      if (originalB45 && typeof originalB45 === 'object' && 'richText' in originalB45) {
+        // richText 형식인 경우
+        const richTextValue = originalB45 as { richText: ExcelJS.RichText[] };
+        const newRichText: ExcelJS.RichText[] = [];
+
+        richTextValue.richText.forEach((part) => {
+          if (part.text && part.text.includes('교부받았음')) {
+            // "교부받았음"이 포함된 part는 그대로 유지
+            newRichText.push(part);
+          } else if (part.text && part.text.includes('(인)')) {
+            // "(인)"이 포함된 part를 분할: 앞공백 + 근로자명 + 뒤공백 + (인)
+            // 원본 폰트 스타일 보존 (빨간색, 밑줄, 굵은글씨)
+            const originalFont = part.font || {};
+
+            // 원본 공백 길이 (약 21칸)
+            const originalSpaceLength = part.text.length - 3; // "(인)" 제외
+            // 이름 길이에 따라 앞뒤 공백 계산 (중앙 정렬)
+            const nameLength = workerName.length;
+            const totalSpaceNeeded = originalSpaceLength - nameLength;
+            const frontSpace = Math.floor(totalSpaceNeeded / 2);
+            const backSpace = 4; // (인)과의 간격
+
+            // 앞 공백
+            if (frontSpace > 0) {
+              newRichText.push({
+                ...part,
+                text: ' '.repeat(frontSpace)
+              });
+            }
+
+            // 근로자명 (파란색으로 표시)
+            newRichText.push({
+              font: {
+                ...originalFont,
+                color: { argb: 'FF002060' } // 파란색
+              },
+              text: workerName
+            });
+
+            // 뒤 공백 + (인) (원본 스타일 유지)
+            newRichText.push({
+              ...part,
+              text: ' '.repeat(backSpace) + '(인)'
+            });
+          } else {
+            // 다른 part는 그대로 유지
+            newRichText.push(part);
+          }
+        });
+
+        cellB45.value = { richText: newRichText };
+      } else if (typeof originalB45 === 'string') {
+        // 일반 문자열인 경우
+        const match = originalB45.match(/^(.+교부받았음)(\s+)\(인\)$/);
+        if (match) {
+          const beforeText = match[1];
+          const originalSpaceLength = match[2].length;
+          const nameLength = workerName.length;
+          const totalSpaceNeeded = originalSpaceLength - nameLength;
+          const frontSpace = Math.floor(totalSpaceNeeded / 2);
+          const backSpace = 4;
+
+          cellB45.value = {
+            richText: [
+              { text: beforeText },
+              { text: ' '.repeat(frontSpace) },
+              { font: { color: { argb: 'FF002060' } }, text: workerName },
+              { text: ' '.repeat(backSpace) + '(인)' }
+            ]
+          };
+        }
+      }
     }
 
     this.setCellWithBlackText(worksheet, workerInfo.residentNumber, worker.residentNumber || '');
@@ -670,23 +785,20 @@ export class ExcelGeneratorService {
     // 인쇄 영역을 51번 행까지 설정
     this.setPrintArea(worksheet);
 
-    // 계약 월 시트만 남기고 나머지 시트는 완전히 삭제
+    // 계약 월 시트만 남기고 나머지 시트는 숨김 처리
+    // (삭제 대신 숨김 처리하여 workbook 구조 손상 방지)
     const targetSheetName = worksheet.name;
-
-    // 삭제할 시트 목록 수집 (역순으로 삭제하기 위해)
-    const sheetsToRemove: string[] = [];
     workbook.worksheets.forEach((sheet) => {
       if (sheet.name !== targetSheetName) {
-        sheetsToRemove.push(sheet.name);
+        sheet.state = 'veryHidden';
       }
     });
 
-    // 시트 삭제
-    sheetsToRemove.forEach((sheetName) => {
-      workbook.removeWorksheet(sheetName);
+    // Buffer 작성 시 옵션 명시
+    return await workbook.xlsx.writeBuffer({
+      useStyles: true,
+      useSharedStrings: true
     });
-
-    return await workbook.xlsx.writeBuffer();
   }
 
   /**
@@ -753,7 +865,8 @@ export class ExcelGeneratorService {
     worker: Worker
   ): Promise<void> {
     const buffer = await this.generateSingleContract(data, worker);
-    const blob = new Blob([buffer], {
+    // ArrayBuffer를 Uint8Array로 변환하여 Blob 생성 (브라우저 호환성 향상)
+    const blob = new Blob([new Uint8Array(buffer)], {
       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     });
 
