@@ -127,20 +127,8 @@ export class ExcelGeneratorService {
       // B36: "성명 :" 패턴 뒤의 모든 빈칸을 근로자명으로 교체 (특수 케이스)
       this.fillWorkerNameInCell(worksheet, workerInfo.signatureB36, workerName, 'name-fields');
 
-      // B43: 안전보호구 지급확인 (인) - 단순히 근로자명 + (인) 형태로 설정
-      const cellB43 = worksheet.getCell(workerInfo.signatureB43);
-      cellB43.value = {
-        richText: [
-          {
-            font: { color: { argb: 'FF002060' } },
-            text: workerName
-          },
-          {
-            text: ' (인)'
-          }
-        ]
-      };
-      cellB43.alignment = { horizontal: 'center', vertical: 'middle' };
+      // B43: 안전보호구 지급확인 - 템플릿의 기본값 (인) 유지 (수기 작성용)
+      // 이 셀은 수정하지 않음
 
       // B44: 안전보호구 수령확인 동의자 성명 - richText 형식 직접 처리
       const cellB44 = worksheet.getCell(workerInfo.signatureB44);
