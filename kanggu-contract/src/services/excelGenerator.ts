@@ -184,9 +184,25 @@ export class ExcelGeneratorService {
             // "교부받았음"이 포함된 part는 그대로 유지
             newRichText.push(part);
           } else if (part.text && part.text.includes('(인)')) {
-            // "(인)"이 포함된 part를 분할: 근로자명 + 공백 + (인)
+            // "(인)"이 포함된 part를 분할: 앞공백 + 근로자명 + 뒤공백 + (인)
             // 원본 폰트 스타일 보존 (빨간색, 밑줄, 굵은글씨)
             const originalFont = part.font || {};
+
+            // 원본 공백 길이 (약 21칸)
+            const originalSpaceLength = part.text.length - 3; // "(인)" 제외
+            // 이름 길이에 따라 앞뒤 공백 계산 (중앙 정렬)
+            const nameLength = workerName.length;
+            const totalSpaceNeeded = originalSpaceLength - nameLength;
+            const frontSpace = Math.floor(totalSpaceNeeded / 2);
+            const backSpace = 4; // (인)과의 간격
+
+            // 앞 공백
+            if (frontSpace > 0) {
+              newRichText.push({
+                ...part,
+                text: ' '.repeat(frontSpace)
+              });
+            }
 
             // 근로자명 (파란색으로 표시)
             newRichText.push({
@@ -197,10 +213,10 @@ export class ExcelGeneratorService {
               text: workerName
             });
 
-            // 공백 + (인) (원본 스타일 유지)
+            // 뒤 공백 + (인) (원본 스타일 유지)
             newRichText.push({
               ...part,
-              text: '                          (인)'
+              text: ' '.repeat(backSpace) + '(인)'
             });
           } else {
             // 다른 part는 그대로 유지
@@ -214,11 +230,18 @@ export class ExcelGeneratorService {
         const match = originalB45.match(/^(.+교부받았음)(\s+)\(인\)$/);
         if (match) {
           const beforeText = match[1];
+          const originalSpaceLength = match[2].length;
+          const nameLength = workerName.length;
+          const totalSpaceNeeded = originalSpaceLength - nameLength;
+          const frontSpace = Math.floor(totalSpaceNeeded / 2);
+          const backSpace = 4;
+
           cellB45.value = {
             richText: [
               { text: beforeText },
+              { text: ' '.repeat(frontSpace) },
               { font: { color: { argb: 'FF002060' } }, text: workerName },
-              { text: '                          (인)' }
+              { text: ' '.repeat(backSpace) + '(인)' }
             ]
           };
         }
